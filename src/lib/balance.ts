@@ -23,7 +23,7 @@ export function computeBalances(members: Member[], bills: Bill[]): Record<string
   return balance;
 }
 
-export function computeSettlement(members: Member[], bills: Bill[]): Settlement[] {
+export function computeSettlement(members: Member[], bills: Bill[], currency = ""): Settlement[] {
   const balances = computeBalances(members, bills);
   const nameOf = Object.fromEntries(members.map((m) => [m.id, m.name]));
 
@@ -49,6 +49,7 @@ export function computeSettlement(members: Member[], bills: Bill[]): Settlement[
         toId: c.id,
         toName: nameOf[c.id] ?? c.id,
         amount: Math.round(amount * 100) / 100,
+        currency,
       });
     }
     c.amount -= amount;
