@@ -17,12 +17,12 @@ interface Props {
 
 const UNGROUPED = "__ungrouped__";
 
-interface GroupInputProps extends Omit<React.ComponentProps<typeof Input>, "onChange"> {
+interface GroupInputProps extends Omit<React.ComponentProps<typeof Input>, "onChange" | "onSelect"> {
   open: boolean;
   options: string[];
   onChange: (value: string) => void;
   onToggle: () => void;
-  onSelect: (value: string) => void;
+  onOptionSelect: (value: string) => void;
 }
 
 function GroupInput({
@@ -31,7 +31,7 @@ function GroupInput({
   options,
   onChange,
   onToggle,
-  onSelect,
+  onOptionSelect,
   value,
   ...props
 }: GroupInputProps) {
@@ -60,7 +60,7 @@ function GroupInput({
                 <li key={option}>
                   <button
                     type="button"
-                    onClick={() => onSelect(option)}
+                    onClick={() => onOptionSelect(option)}
                     className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                   >
                     {option}
@@ -209,7 +209,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                           open={isEditGroupOpen}
                           options={existingGroups.filter((group) => group !== editGroup)}
                           onToggle={() => setIsEditGroupOpen((prev) => !prev)}
-                          onSelect={(group) => {
+                          onOptionSelect={(group) => {
                             setEditGroup(group);
                             setIsEditGroupOpen(false);
                           }}
@@ -293,7 +293,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
             open={isAddGroupOpen}
             options={existingGroups.filter((group) => group !== newGroup)}
             onToggle={() => setIsAddGroupOpen((prev) => !prev)}
-            onSelect={(group) => {
+            onOptionSelect={(group) => {
               setNewGroup(group);
               setIsAddGroupOpen(false);
             }}
