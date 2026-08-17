@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { ShareButton } from "./share-button";
+import { TripTracker } from "@/components/trip-tracker";
 import { Receipt, Plus, Users, BarChart3, ArrowLeft } from "lucide-react";
 
 type Member = { id: string; name: string };
@@ -59,6 +60,7 @@ export default async function TripDashboard({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <TripTracker tripId={id} />
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
         <Link href="/" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100">

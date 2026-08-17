@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlaneTakeoff, Users } from "lucide-react";
+import { PlaneTakeoff, Users, ChevronRight } from "lucide-react";
+import { getRecentTrips } from "@/components/trip-tracker";
 
 export default function HomePage() {
   const router = useRouter();
   const [tripId, setTripId] = useState("");
+  const [recentTrips, setRecentTrips] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRecentTrips(getRecentTrips());
+  }, []);
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -17,7 +23,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-8">
       <div className="w-full max-w-sm space-y-8">
         {/* Hero */}
         <div className="text-center space-y-2">
@@ -33,6 +39,30 @@ export default function HomePage() {
             หารค่าใช้จ่ายในทริป ง่าย ไม่ต้องสมัครบัญชี
           </p>
         </div>
+
+        {/* Recent trips */}
+        {recentTrips.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              ทริปของฉัน
+            </p>
+            <ul className="bg-white rounded-xl border divide-y">
+              {recentTrips.map((id) => (
+                <li key={id}>
+                  <button
+                    onClick={() => router.push(`/trips/${id}`)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="font-mono font-semibold tracking-widest text-slate-800">
+                      {id}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-4">
