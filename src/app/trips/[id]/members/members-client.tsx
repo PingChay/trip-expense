@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, X, Pencil, Check, Users } from "lucide-react";
+import { ArrowLeft, Plus, X, Pencil, Check, Users, ChevronDown } from "lucide-react";
 import { addMember, updateMember, deleteMember } from "./actions";
 
 type Member = { id: string; name: string; active: boolean; group_name?: string | null };
@@ -17,13 +17,75 @@ interface Props {
 
 const UNGROUPED = "__ungrouped__";
 
+interface GroupInputProps extends Omit<React.ComponentProps<typeof Input>, "onChange"> {
+  open: boolean;
+  options: string[];
+  onChange: (value: string) => void;
+  onToggle: () => void;
+  onSelect: (value: string) => void;
+}
+
+function GroupInput({
+  className,
+  open,
+  options,
+  onChange,
+  onToggle,
+  onSelect,
+  value,
+  ...props
+}: GroupInputProps) {
+  return (
+    <div className="relative flex-1">
+      <Input
+        {...props}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={["pr-10", className].filter(Boolean).join(" ")}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="เลือกกลุ่ม"
+        aria-expanded={open}
+        className="absolute inset-y-1 right-1 flex w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
+      >
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border bg-white shadow-lg">
+          {options.length > 0 ? (
+            <ul className="max-h-44 overflow-y-auto py-1">
+              {options.map((option) => (
+                <li key={option}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(option)}
+                    className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    {option}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-3 py-2 text-sm text-slate-400">ยังไม่มีกลุ่มให้เลือก</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
   const [members, setMembers] = useState(initialMembers);
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
+  const [isAddGroupOpen, setIsAddGroupOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editGroup, setEditGroup] = useState("");
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -42,6 +104,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     setMembers((prev) => [...prev, { id: tempId, name, active: true, group_name: group }]);
     setNewName("");
     setNewGroup("");
+    setIsAddGroupOpen(false);
     setError(null);
     startTransition(async () => {
       await addMember(tripId, name, group ?? undefined);
@@ -52,6 +115,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     setEditingId(m.id);
     setEditName(m.name);
     setEditGroup(m.group_name ?? "");
+    setIsEditGroupOpen(false);
   }
 
   function handleSaveEdit(id: string) {
@@ -64,6 +128,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     const group = editGroup.trim() || null;
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, name, group_name: group } : m)));
     setEditingId(null);
+    setIsEditGroupOpen(false);
     setError(null);
     startTransition(async () => {
       await updateMember(id, tripId, name, group ?? undefined);
@@ -137,12 +202,18 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                         className="h-8"
                       />
                       <div className="flex gap-2">
-                        <Input
+                        <GroupInput
                           placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
                           value={editGroup}
-                          onChange={(e) => setEditGroup(e.target.value)}
-                          list="group-suggestions"
-                          className="h-8 flex-1 text-xs"
+                          onChange={setEditGroup}
+                          open={isEditGroupOpen}
+                          options={existingGroups.filter((group) => group !== editGroup)}
+                          onToggle={() => setIsEditGroupOpen((prev) => !prev)}
+                          onSelect={(group) => {
+                            setEditGroup(group);
+                            setIsEditGroupOpen(false);
+                          }}
+                          className="h-8 text-xs"
                         />
                         <button
                           type="button"
@@ -215,19 +286,20 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <Input
+          <GroupInput
             placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
             value={newGroup}
-            onChange={(e) => setNewGroup(e.target.value)}
-            list="group-suggestions"
+            onChange={setNewGroup}
+            open={isAddGroupOpen}
+            options={existingGroups.filter((group) => group !== newGroup)}
+            onToggle={() => setIsAddGroupOpen((prev) => !prev)}
+            onSelect={(group) => {
+              setNewGroup(group);
+              setIsAddGroupOpen(false);
+            }}
             className="h-9 text-sm text-slate-600"
           />
         </div>
-
-        {/* datalist for group autocomplete */}
-        <datalist id="group-suggestions">
-          {existingGroups.map((g) => <option key={g} value={g} />)}
-        </datalist>
       </div>
     </div>
   );
