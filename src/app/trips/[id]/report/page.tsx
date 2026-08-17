@@ -22,6 +22,15 @@ export default async function ReportPage({
 
   if (!trip) notFound();
 
+  const hasNamedGroups = (members ?? []).some((member) => Boolean(member.group_name?.trim()));
+  const namedGroups = new Set(
+    (members ?? []).map((member) => member.group_name?.trim()).filter(Boolean) as string[]
+  );
+
+  function getGroupLabel(member: { name: string; group_name?: string | null }) {
+    return member.group_name?.trim() || member.name;
+  }
+
   const memberMap = Object.fromEntries((members ?? []).map((m) => [m.id, m.name]));
 
   const billBreakdown = (bills ?? []).map((b) => ({
@@ -42,7 +51,7 @@ export default async function ReportPage({
   const perPerson = (members ?? []).map((m) => ({
     id: m.id,
     name: m.name,
-    groupName: m.group_name as string | null ?? null,
+    groupName: hasNamedGroups ? getGroupLabel(m) : null,
     currencies: currencies
       .map((currency) => {
         const currBills = (bills ?? []).filter((b) => b.currency === currency);
@@ -60,13 +69,17 @@ export default async function ReportPage({
 
   // group-level aggregates
   const groupMap = new Map<string, string[]>(); // groupName → memberIds
-  for (const m of members ?? []) {
-    if (m.group_name) {
-      groupMap.set(m.group_name, [...(groupMap.get(m.group_name) ?? []), m.id]);
+  if (hasNamedGroups) {
+    for (const m of members ?? []) {
+      const groupName = getGroupLabel(m);
+      groupMap.set(groupName, [...(groupMap.get(groupName) ?? []), m.id]);
     }
   }
-  const groupSummaries = Array.from(groupMap.entries()).map(([groupName, memberIds]) => ({
+  const groupSummaries = Array.from(groupMap.entries())
+    .sort(([left], [right]) => left.localeCompare(right, "th"))
+    .map(([groupName, memberIds]) => ({
     groupName,
+    isGroup: namedGroups.has(groupName),
     memberCount: memberIds.length,
     currencies: currencies
       .map((currency) => {
@@ -81,7 +94,7 @@ export default async function ReportPage({
         return { currency, paid, owed, balance: paid - owed };
       })
       .filter((c) => c.paid > 0.005 || c.owed > 0.005),
-  }));
+    }));
 
   const settlements = computeSettlementMultiCurrency(
     members ?? [],
@@ -104,12 +117,30 @@ export default async function ReportPage({
       .filter(([, b]) => b < -0.005)
       .map(([n, a]) => ({ id: n, amount: -a }))
       .sort((a, b) => b.amount - a.amount);
-    const result: { fromId: string; fromName: string; toId: string; toName: string; amount: number; currency: string }[] = [];
+    const result: {
+      fromId: string;
+      fromName: string;
+      fromIsGroup: boolean;
+      toId: string;
+      toName: string;
+      toIsGroup: boolean;
+      amount: number;
+      currency: string;
+    }[] = [];
     while (creds.length && debs.length) {
       const c = creds[0], d = debs[0];
       const amount = Math.min(c.amount, d.amount);
       if (amount > 0.005)
-        result.push({ fromId: d.id, fromName: d.id, toId: c.id, toName: c.id, amount: Math.round(amount * 100) / 100, currency });
+        result.push({
+          fromId: d.id,
+          fromName: d.id,
+          fromIsGroup: namedGroups.has(d.id),
+          toId: c.id,
+          toName: c.id,
+          toIsGroup: namedGroups.has(c.id),
+          amount: Math.round(amount * 100) / 100,
+          currency,
+        });
       c.amount -= amount;
       d.amount -= amount;
       if (c.amount < 0.005) creds.shift();

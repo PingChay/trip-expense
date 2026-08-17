@@ -175,7 +175,7 @@ export default async function TripDashboard({
           <Link href={`/trips/${id}/report`}>
             <Button variant="outline" className="w-full h-14 flex-col gap-1 text-sm">
               <BarChart3 className="h-5 w-5" />
-              Report
+              สรุป
             </Button>
           </Link>
         </div>
