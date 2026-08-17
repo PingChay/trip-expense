@@ -18,7 +18,7 @@ export default async function EditBillPage({
       .eq("id", billId)
       .eq("trip_id", id)
       .maybeSingle(),
-    supabase.from("members").select("id, name").eq("trip_id", id).order("created_at"),
+    supabase.from("members").select("id, name, group_name").eq("trip_id", id).order("created_at"),
   ]);
 
   if (!bill || !members) notFound();

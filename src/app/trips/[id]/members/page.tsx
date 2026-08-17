@@ -11,7 +11,7 @@ export default async function MembersPage({
 
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("name").eq("id", id).maybeSingle(),
-    supabase.from("members").select("id, name, active").eq("trip_id", id).order("created_at"),
+    supabase.from("members").select("id, name, active, group_name").eq("trip_id", id).order("created_at"),
     supabase.from("bills").select("payer_id, participants").eq("trip_id", id),
   ]);
 

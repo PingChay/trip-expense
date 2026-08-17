@@ -12,7 +12,7 @@ export default async function NewBillPage({
 
   const { data: members } = await supabase
     .from("members")
-    .select("id, name")
+    .select("id, name, group_name")
     .eq("trip_id", id)
     .eq("active", true)
     .order("created_at");

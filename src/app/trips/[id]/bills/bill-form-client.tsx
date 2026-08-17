@@ -10,6 +10,7 @@ import type { BillInput } from "@/lib/types";
 interface Member {
   id: string;
   name: string;
+  group_name?: string | null;
 }
 
 interface Props {
@@ -198,27 +199,71 @@ export function BillFormClient({
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border divide-y">
-            {members.map((m) => (
-              <label
-                key={m.id}
-                className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  checked={participants.includes(m.id)}
-                  onChange={() => toggleParticipant(m.id)}
-                  className="h-4 w-4 rounded"
-                />
-                <span className="flex-1 text-sm text-slate-800">{m.name}</span>
-                {amountNum > 0 && participants.includes(m.id) && (
-                  <span className="text-xs text-slate-400 tabular-nums">
-                    {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
-                  </span>
-                )}
-              </label>
-            ))}
-          </div>
+          {/* Group members for display */}
+          {(() => {
+            const UNGROUPED = "__ungrouped__";
+            const grouped = members.reduce((acc, m) => {
+              const key = m.group_name || UNGROUPED;
+              (acc[key] = acc[key] || []).push(m);
+              return acc;
+            }, {} as Record<string, Member[]>);
+            const groupKeys = [
+              ...(grouped[UNGROUPED] ? [UNGROUPED] : []),
+              ...Object.keys(grouped).filter((k) => k !== UNGROUPED).sort(),
+            ];
+
+            return (
+              <div className="bg-white rounded-xl border overflow-hidden divide-y">
+                {groupKeys.map((groupKey) => (
+                  <div key={groupKey}>
+                    {groupKey !== UNGROUPED && (
+                      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b">
+                        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                          <span>👨‍👩‍👧</span> {groupKey}
+                        </span>
+                        <button
+                          type="button"
+                          className="text-xs text-blue-500 hover:underline"
+                          onClick={() => {
+                            const groupIds = grouped[groupKey].map((m) => m.id);
+                            const allSelected = groupIds.every((id) => participants.includes(id));
+                            if (allSelected) {
+                              setParticipants((prev) => prev.filter((id) => !groupIds.includes(id)));
+                            } else {
+                              setParticipants((prev) => [...new Set([...prev, ...groupIds])]);
+                            }
+                          }}
+                        >
+                          {grouped[groupKey].every((m) => participants.includes(m.id))
+                            ? "ยกเลิกกลุ่ม"
+                            : "เลือกกลุ่ม"}
+                        </button>
+                      </div>
+                    )}
+                    {grouped[groupKey].map((m) => (
+                      <label
+                        key={m.id}
+                        className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={participants.includes(m.id)}
+                          onChange={() => toggleParticipant(m.id)}
+                          className="h-4 w-4 rounded"
+                        />
+                        <span className="flex-1 text-sm text-slate-800">{m.name}</span>
+                        {amountNum > 0 && participants.includes(m.id) && (
+                          <span className="text-xs text-slate-400 tabular-nums">
+                            {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {amountNum > 0 && selectedCount > 0 && (
             <div className="bg-blue-50 rounded-lg px-3 py-2 text-sm text-blue-700">

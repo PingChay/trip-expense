@@ -18,6 +18,18 @@ type BillBreakdown = {
 type PersonSummary = {
   id: string;
   name: string;
+  groupName: string | null;
+  currencies: {
+    currency: string;
+    paid: number;
+    owed: number;
+    balance: number;
+  }[];
+};
+
+type GroupSummary = {
+  groupName: string;
+  memberCount: number;
   currencies: {
     currency: string;
     paid: number;
@@ -30,12 +42,14 @@ interface Props {
   tripId: string;
   billBreakdown: BillBreakdown[];
   perPerson: PersonSummary[];
+  groupSummaries: GroupSummary[];
   settlements: Settlement[];
+  groupSettlements: Settlement[];
 }
 
 type Tab = "breakdown" | "person" | "settlement";
 
-export function ReportClient({ tripId, billBreakdown, perPerson, settlements }: Props) {
+export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries, settlements, groupSettlements }: Props) {
   const [tab, setTab] = useState<Tab>("breakdown");
 
   const tabs: { id: Tab; label: string }[] = [
@@ -117,11 +131,72 @@ export function ReportClient({ tripId, billBreakdown, perPerson, settlements }: 
         )}
 
         {tab === "person" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Group summary — only if there are groups */}
+            {groupSummaries.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1">
+                  สรุปรายกลุ่ม
+                </p>
+                {groupSummaries.map((g) => (
+                  <div key={g.groupName} className="bg-white rounded-xl border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-semibold text-slate-900 flex items-center gap-1.5">
+                        <span>👨‍👩‍👧</span> {g.groupName}
+                      </p>
+                      <span className="text-xs text-slate-400">{g.memberCount} คน</span>
+                    </div>
+                    {g.currencies.map(({ currency, paid, owed, balance }) => {
+                      const rounded = Math.round(balance * 100) / 100;
+                      return (
+                        <div key={currency} className="space-y-1 text-sm">
+                          {g.currencies.length > 1 && (
+                            <p className="text-xs font-medium text-slate-400 uppercase">{currency}</p>
+                          )}
+                          <div className="flex justify-between text-slate-500">
+                            <span>จ่ายแทนไปทั้งหมด</span>
+                            <span className="tabular-nums">
+                              {paid.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-500">
+                            <span>ส่วนแบ่งรวมของกลุ่ม</span>
+                            <span className="tabular-nums">
+                              {owed.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between font-medium border-t pt-1.5 mt-1">
+                            <span className="text-slate-700">ยอดสุทธิกลุ่ม</span>
+                            <span
+                              className={`tabular-nums ${
+                                rounded > 0.005
+                                  ? "text-green-600"
+                                  : rounded < -0.005
+                                  ? "text-red-500"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {rounded > 0 ? "+" : ""}
+                              {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+                <div className="border-t pt-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
+                    ยอดรายคน
+                  </p>
+                </div>
+              </div>
+            )}
             {perPerson.length === 0 ? (
               <p className="text-center text-slate-400 text-sm py-16">ยังไม่มีรายการ</p>
             ) : (
-              perPerson.map((p) => (
+              <div className="space-y-3">
+              {perPerson.map((p) => (
                 <div key={p.id} className="bg-white rounded-xl border p-4">
                   <p className="font-semibold text-slate-900 mb-3">{p.name}</p>
                   {p.currencies.length === 0 ? (
@@ -184,43 +259,79 @@ export function ReportClient({ tripId, billBreakdown, perPerson, settlements }: 
                     })
                   )}
                 </div>
-              ))
+              ))}
+              </div>
             )}
           </div>
         )}
 
         {tab === "settlement" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {settlements.length === 0 ? (
-              <div className="text-center py-16 space-y-1">
+              <div className="text-center py-16">
                 <p className="text-slate-400 text-sm">
-                  {perPerson.length === 0
-                    ? "ยังไม่มีรายการ"
-                    : "ทุกคนเสมอกัน ไม่มีการโอนเงิน 🎉"}
+                  {perPerson.length === 0 ? "ยังไม่มีรายการ" : "ทุกคนเสมอกัน ไม่มีการโอนเงิน 🎉"}
                 </p>
               </div>
             ) : (
               <>
-                <p className="text-xs text-slate-400 text-center">
-                  การโอนเงินที่ต้องทำ ({settlements.length} รายการ)
-                </p>
-                {settlements.map((s, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-xl border p-4 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        <span className="text-red-500">{s.fromName}</span>
-                        <span className="text-slate-400 mx-1.5">→</span>
-                        <span className="text-green-600">{s.toName}</span>
+                {/* Group-to-group settlements — only if there are groups */}
+                {groupSettlements.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1">
+                      สรุปรายกลุ่ม
+                    </p>
+                    {groupSettlements.map((s, i) => (
+                      <div
+                        key={i}
+                        className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            <span className="mr-1">👨‍👩‍👧</span>
+                            <span className="text-red-500">{s.fromName}</span>
+                            <span className="text-slate-400 mx-1.5">→</span>
+                            <span className="text-green-600">{s.toName}</span>
+                          </p>
+                        </div>
+                        <p className="font-bold text-slate-900 tabular-nums shrink-0">
+                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
+                        </p>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
+                        รายละเอียดรายคน
                       </p>
                     </div>
-                    <p className="font-bold text-slate-900 tabular-nums shrink-0">
-                      {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
-                    </p>
                   </div>
-                ))}
+                )}
+
+                {/* Individual settlements */}
+                <div className="space-y-2">
+                  {!groupSettlements.length && (
+                    <p className="text-xs text-slate-400 text-center">
+                      การโอนเงินที่ต้องทำ ({settlements.length} รายการ)
+                    </p>
+                  )}
+                  {settlements.map((s, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-xl border p-4 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          <span className="text-red-500">{s.fromName}</span>
+                          <span className="text-slate-400 mx-1.5">→</span>
+                          <span className="text-green-600">{s.toName}</span>
+                        </p>
+                      </div>
+                      <p className="font-bold text-slate-900 tabular-nums shrink-0">
+                        {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>
