@@ -18,9 +18,12 @@ type BillBreakdown = {
 type PersonSummary = {
   id: string;
   name: string;
-  paid: number;
-  owed: number;
-  balance: number;
+  currencies: {
+    currency: string;
+    paid: number;
+    owed: number;
+    balance: number;
+  }[];
 };
 
 interface Props {
@@ -113,71 +116,79 @@ export function ReportClient({ tripId, billBreakdown, perPerson, settlements }: 
           </div>
         )}
 
-        {/* Per Person */}
         {tab === "person" && (
           <div className="space-y-3">
             {perPerson.length === 0 ? (
               <p className="text-center text-slate-400 text-sm py-16">ยังไม่มีรายการ</p>
             ) : (
-              perPerson.map((p) => {
-                const rounded = Math.round(p.balance * 100) / 100;
-                return (
-                  <div key={p.id} className="bg-white rounded-xl border p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="font-semibold text-slate-900">{p.name}</p>
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          rounded > 0.005
-                            ? "bg-green-50 text-green-600"
-                            : rounded < -0.005
-                            ? "bg-red-50 text-red-500"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {rounded > 0.005
-                          ? "ได้รับเงิน"
-                          : rounded < -0.005
-                          ? "ต้องจ่าย"
-                          : "เสมอกัน"}
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between text-slate-500">
-                        <span>จ่ายแทนไป</span>
-                        <span className="tabular-nums">
-                          {p.paid.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ฿
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-500">
-                        <span>ส่วนแบ่งของตัวเอง</span>
-                        <span className="tabular-nums">
-                          {p.owed.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ฿
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-medium border-t pt-2 mt-1">
-                        <span className="text-slate-700">ยอดสุทธิ</span>
-                        <span
-                          className={`tabular-nums ${
-                            rounded > 0.005
-                              ? "text-green-600"
-                              : rounded < -0.005
-                              ? "text-red-500"
-                              : "text-slate-400"
-                          }`}
-                        >
-                          {rounded > 0 ? "+" : ""}
-                          {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ฿
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+              perPerson.map((p) => (
+                <div key={p.id} className="bg-white rounded-xl border p-4">
+                  <p className="font-semibold text-slate-900 mb-3">{p.name}</p>
+                  {p.currencies.length === 0 ? (
+                    <p className="text-xs text-slate-400">ยังไม่มีบิลเกี่ยวข้อง</p>
+                  ) : (
+                    p.currencies.map(({ currency, paid, owed, balance }) => {
+                      const rounded = Math.round(balance * 100) / 100;
+                      return (
+                        <div key={currency} className="mb-3 last:mb-0">
+                          {p.currencies.length > 1 && (
+                            <p className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                              {currency}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-slate-500">สถานะ</span>
+                            <span
+                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                rounded > 0.005
+                                  ? "bg-green-50 text-green-600"
+                                  : rounded < -0.005
+                                  ? "bg-red-50 text-red-500"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {rounded > 0.005 ? "ได้รับเงิน" : rounded < -0.005 ? "ต้องจ่าย" : "เสมอกัน"}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between text-slate-500">
+                              <span>จ่ายแทนไป</span>
+                              <span className="tabular-nums">
+                                {paid.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-slate-500">
+                              <span>ส่วนแบ่งของตัวเอง</span>
+                              <span className="tabular-nums">
+                                {owed.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                              </span>
+                            </div>
+                            <div className="flex justify-between font-medium border-t pt-2 mt-1">
+                              <span className="text-slate-700">ยอดสุทธิ</span>
+                              <span
+                                className={`tabular-nums ${
+                                  rounded > 0.005
+                                    ? "text-green-600"
+                                    : rounded < -0.005
+                                    ? "text-red-500"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                {rounded > 0 ? "+" : ""}
+                                {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ))
             )}
           </div>
         )}
 
-        {/* Settlement */}
         {tab === "settlement" && (
           <div className="space-y-3">
             {settlements.length === 0 ? (
@@ -206,7 +217,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, settlements }: 
                       </p>
                     </div>
                     <p className="font-bold text-slate-900 tabular-nums shrink-0">
-                      {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ฿
+                      {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
                     </p>
                   </div>
                 ))}

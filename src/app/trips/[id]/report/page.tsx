@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { computeBalances, computeSettlement } from "@/lib/balance";
+import { computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
 export default async function ReportPage({
@@ -37,18 +37,30 @@ export default async function ReportPage({
     })),
   }));
 
-  const perPerson = (members ?? []).map((m) => {
-    const paid = (bills ?? [])
-      .filter((b) => b.payer_id === m.id)
-      .reduce((s, b) => s + Number(b.amount), 0);
-    const owed = (bills ?? []).reduce((s, b) => {
-      if (!(b.participants as string[]).includes(m.id)) return s;
-      return s + Number(b.amount) / b.participants.length;
-    }, 0);
-    return { id: m.id, name: m.name, paid, owed, balance: paid - owed };
-  });
+  // compute per-person summary grouped by currency
+  const currencies = [...new Set((bills ?? []).map((b) => b.currency as string))];
+  const perPerson = (members ?? []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    currencies: currencies
+      .map((currency) => {
+        const currBills = (bills ?? []).filter((b) => b.currency === currency);
+        const paid = currBills
+          .filter((b) => b.payer_id === m.id)
+          .reduce((s, b) => s + Number(b.amount), 0);
+        const owed = currBills.reduce((s, b) => {
+          if (!(b.participants as string[]).includes(m.id)) return s;
+          return s + Number(b.amount) / b.participants.length;
+        }, 0);
+        return { currency, paid, owed, balance: paid - owed };
+      })
+      .filter((c) => c.paid > 0.005 || c.owed > 0.005),
+  }));
 
-  const settlements = computeSettlement(members ?? [], bills ?? []);
+  const settlements = computeSettlementMultiCurrency(
+    members ?? [],
+    (bills ?? []).map((b) => ({ ...b, amount: Number(b.amount), currency: b.currency as string }))
+  );
 
   return (
     <ReportClient
