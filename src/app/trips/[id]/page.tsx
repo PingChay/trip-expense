@@ -129,7 +129,7 @@ export default async function TripDashboard({
             <h2 className="text-sm font-semibold text-slate-700">ยอดสรุปรายคน</h2>
             <ul className="space-y-2">
               {(members ?? []).map((m) => {
-                const currencyBalances = Object.entries(balancesByCurrency)
+                const currencyBalances = (Object.entries(balancesByCurrency) as Array<[string, Record<string, number>]>)
                   .map(([currency, bals]) => ({
                     currency,
                     bal: Math.round((bals[m.id] ?? 0) * 100) / 100,

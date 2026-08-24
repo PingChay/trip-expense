@@ -4,7 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, House, Plus, Receipt, Users } from "lucide-react";
 
-const tabs = [
+type TripTab = {
+  href: (tripId: string) => string;
+  label: string;
+  icon: typeof House;
+  match: (pathname: string, tripId: string) => boolean;
+  emphasis?: boolean;
+};
+
+const tabs: readonly TripTab[] = [
   {
     href: (tripId: string) => `/trips/${tripId}`,
     label: "หน้าแรก",
@@ -37,7 +45,7 @@ const tabs = [
     icon: BarChart3,
     match: (pathname: string, tripId: string) => pathname === `/trips/${tripId}/report`,
   },
-] as const;
+];
 
 export function TripTabBar({ tripId }: { tripId: string }) {
   const pathname = usePathname();
