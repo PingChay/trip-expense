@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { serializeBillNote } from "@/lib/bill-entry";
 import type { BillInput } from "@/lib/types";
 
 export async function createBill(tripId: string, data: BillInput) {
@@ -14,7 +15,7 @@ export async function createBill(tripId: string, data: BillInput) {
     payer_id: data.payerId,
     participants: data.participants,
     date: data.date || new Date().toISOString().split("T")[0],
-    note: data.note.trim(),
+    note: serializeBillNote(data.note, data.entryType),
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/trips/${tripId}`);

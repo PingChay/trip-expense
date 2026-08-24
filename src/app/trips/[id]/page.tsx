@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
@@ -7,7 +8,7 @@ import { TripTabBar } from "@/components/trip-tab-bar";
 import { LogOut } from "lucide-react";
 
 type Member = { id: string; name: string };
-type Bill = { id: string; amount: number; payer_id: string; participants: string[]; currency: string };
+type Bill = { id: string; amount: number; payer_id: string; participants: string[]; currency: string; note?: string | null };
 
 function computeBalances(members: Member[], bills: Bill[]) {
   const balance: Record<string, number> = {};
@@ -32,20 +33,28 @@ export default async function TripDashboard({
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
     supabase.from("members").select("id, name").eq("trip_id", id).order("created_at"),
-    supabase.from("bills").select("id, amount, payer_id, participants, currency").eq("trip_id", id),
+    supabase.from("bills").select("id, amount, payer_id, participants, currency, note").eq("trip_id", id),
   ]);
 
   if (!trip) notFound();
 
+  const normalizedBills = (bills ?? []).map((bill) => ({
+    ...bill,
+    amount: Number(bill.amount),
+    entryType: parseBillNote(bill.note).entryType,
+  }));
+  const expenseBills = normalizedBills.filter((bill) => isExpenseEntry(bill.entryType));
+
   // group totals and balances by currency
-  const totalByCurrency = (bills ?? []).reduce((acc, b) => {
-    acc[b.currency] = (acc[b.currency] ?? 0) + Number(b.amount);
+  const totalByCurrency = expenseBills.reduce((acc, b) => {
+    acc[b.currency] = (acc[b.currency] ?? 0) + b.amount;
     return acc;
   }, {} as Record<string, number>);
 
-  const balancesByCurrency = Object.keys(totalByCurrency).reduce((acc, currency) => {
-    const currBills = (bills ?? []).filter((b) => b.currency === currency);
-    acc[currency] = computeBalances(members ?? [], currBills.map((b) => ({ ...b, amount: Number(b.amount) })));
+  const balanceCurrencies = [...new Set(normalizedBills.map((bill) => bill.currency))];
+  const balancesByCurrency = balanceCurrencies.reduce((acc, currency) => {
+    const currBills = normalizedBills.filter((bill) => bill.currency === currency);
+    acc[currency] = computeBalances(members ?? [], currBills);
     return acc;
   }, {} as Record<string, Record<string, number>>);
 
@@ -115,7 +124,7 @@ export default async function TripDashboard({
         </div>
 
         {/* Quick balance */}
-        {(members ?? []).length > 0 && (bills ?? []).length > 0 && (
+        {(members ?? []).length > 0 && normalizedBills.length > 0 && (
           <div className="bg-white rounded-2xl border p-4 space-y-3">
             <h2 className="text-sm font-semibold text-slate-700">ยอดสรุปรายคน</h2>
             <ul className="space-y-2">

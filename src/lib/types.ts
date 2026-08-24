@@ -1,3 +1,5 @@
+import type { BillEntryType } from "@/lib/bill-entry";
+
 export interface BillInput {
   title: string;
   amount: number;
@@ -6,4 +8,5 @@ export interface BillInput {
   participants: string[];
   date: string;
   note: string;
+  entryType: BillEntryType;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getBillEntryLabel, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { TripTabBar } from "@/components/trip-tab-bar";
@@ -26,6 +27,10 @@ export default async function BillsPage({
   if (!trip) notFound();
 
   const memberMap = Object.fromEntries((members ?? []).map((m) => [m.id, m.name]));
+  const normalizedBills = (bills ?? []).map((bill) => {
+    const parsedNote = parseBillNote(bill.note);
+    return { ...bill, entryType: parsedNote.entryType };
+  });
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -53,14 +58,21 @@ export default async function BillsPage({
           </div>
         ) : (
           <ul className="space-y-2">
-            {bills.map((bill) => (
+            {normalizedBills.map((bill) => (
               <li key={bill.id}>
                 <Link
                   href={`/trips/${id}/bills/${bill.id}`}
                   className="flex items-center gap-3 bg-white rounded-xl border px-4 py-3 hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">{bill.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-900 truncate">{bill.title}</p>
+                      {bill.entryType === "advance" && (
+                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                          {getBillEntryLabel(bill.entryType)}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       จ่ายโดย {memberMap[bill.payer_id] ?? "-"} ·{" "}
                       {bill.participants.length} คน

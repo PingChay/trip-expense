@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
+import { getBillEntryLabel, type BillEntryType } from "@/lib/bill-entry";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import type { BillInput } from "@/lib/types";
 
@@ -44,6 +45,7 @@ export function BillFormClient({
   );
   const [date, setDate] = useState(initialData?.date ?? today);
   const [note, setNote] = useState(initialData?.note ?? "");
+  const [entryType, setEntryType] = useState<BillEntryType>(initialData?.entryType ?? "expense");
   const [errors, setErrors] = useState<{
     title?: string;
     amount?: string;
@@ -74,7 +76,7 @@ export function BillFormClient({
       return;
     }
     startTransition(async () => {
-      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note });
+      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType });
     });
   }
 
@@ -154,6 +156,34 @@ export function BillFormClient({
             </select>
           </div>
           {errors.amount && <p className="text-xs text-red-500">{errors.amount}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">ประเภทบิล</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
+              { value: "advance", description: "โอนเก็บ/เงินสำรอง ไม่นับรวมยอดใช้จริง" },
+            ] as const).map((option) => {
+              const active = entryType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setEntryType(option.value)}
+                  className={[
+                    "rounded-xl border px-3 py-3 text-left transition-colors",
+                    active ? "border-slate-900 bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <p className="text-sm font-medium">{getBillEntryLabel(option.value)}</p>
+                  <p className={`mt-1 text-xs ${active ? "text-slate-200" : "text-slate-400"}`}>
+                    {option.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Payer */}
@@ -297,6 +327,11 @@ export function BillFormClient({
             onChange={(e) => setNote(e.target.value)}
             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+          {entryType === "advance" && (
+            <p className="text-xs text-amber-600">
+              รายการประเภทเงินสำรองจะถูกเก็บไว้ในบิล แต่ไม่ถูกรวมในยอดค่าใช้จ่ายและสรุปโอนเงิน
+            </p>
+          )}
         </div>
 
         {/* Actions */}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
@@ -13,12 +14,14 @@ export default async function JoinPage({
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
     supabase.from("members").select("name").eq("trip_id", id),
-    supabase.from("bills").select("amount").eq("trip_id", id),
+    supabase.from("bills").select("amount, note").eq("trip_id", id),
   ]);
 
   if (!trip) notFound();
 
-  const total = (bills ?? []).reduce((s, b) => s + Number(b.amount), 0);
+  const total = (bills ?? [])
+    .filter((bill) => isExpenseEntry(parseBillNote(bill.note).entryType))
+    .reduce((s, b) => s + Number(b.amount), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">

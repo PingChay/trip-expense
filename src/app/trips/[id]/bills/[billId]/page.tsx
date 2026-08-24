@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { parseBillNote } from "@/lib/bill-entry";
 import { BillFormClient } from "../bill-form-client";
 import { updateBill, deleteBill } from "./actions";
 import type { BillInput } from "@/lib/types";
@@ -23,6 +24,8 @@ export default async function EditBillPage({
 
   if (!bill || !members) notFound();
 
+  const parsedNote = parseBillNote(bill.note);
+
   const initialData: BillInput = {
     title: bill.title,
     amount: Number(bill.amount),
@@ -30,7 +33,8 @@ export default async function EditBillPage({
     payerId: bill.payer_id,
     participants: bill.participants,
     date: bill.date ?? new Date().toISOString().split("T")[0],
-    note: bill.note ?? "",
+    note: parsedNote.note,
+    entryType: parsedNote.entryType,
   };
 
   const boundUpdate = updateBill.bind(null, billId, id);

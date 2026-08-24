@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { serializeBillNote } from "@/lib/bill-entry";
 import type { BillInput } from "@/lib/types";
 
 export async function updateBill(billId: string, tripId: string, data: BillInput) {
@@ -15,7 +16,7 @@ export async function updateBill(billId: string, tripId: string, data: BillInput
       payer_id: data.payerId,
       participants: data.participants,
       date: data.date,
-      note: data.note.trim(),
+      note: serializeBillNote(data.note, data.entryType),
     })
     .eq("id", billId);
   if (error) throw new Error(error.message);

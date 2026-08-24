@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
+import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { computeSettlementMultiCurrency } from "@/lib/balance";
+import { computeBalances, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
+
+type SummaryCurrency = {
+  currency: string;
+  paid: number;
+  owed: number;
+  balance: number;
+};
 
 export default async function ReportPage({
   params,
@@ -22,6 +30,17 @@ export default async function ReportPage({
 
   if (!trip) notFound();
 
+  const normalizedBills = (bills ?? []).map((bill) => {
+    const parsedNote = parseBillNote(bill.note);
+    return {
+      ...bill,
+      amount: Number(bill.amount),
+      entryType: parsedNote.entryType,
+      note: parsedNote.note,
+    };
+  });
+  const expenseBills = normalizedBills.filter((bill) => isExpenseEntry(bill.entryType));
+
   const hasNamedGroups = (members ?? []).some((member) => Boolean(member.group_name?.trim()));
   const namedGroups = new Set(
     (members ?? []).map((member) => member.group_name?.trim()).filter(Boolean) as string[]
@@ -31,40 +50,63 @@ export default async function ReportPage({
     return member.group_name?.trim() || member.name;
   }
 
+  function summarizeMemberCurrencies(memberId: string, sourceBills: typeof normalizedBills): SummaryCurrency[] {
+    const billCurrencies = [...new Set(sourceBills.map((bill) => bill.currency as string))];
+    return billCurrencies
+      .map((currency) => {
+        const currBills = sourceBills.filter((bill) => bill.currency === currency);
+        const paid = currBills.filter((bill) => bill.payer_id === memberId).reduce((sum, bill) => sum + bill.amount, 0);
+        const owed = currBills.reduce((sum, bill) => {
+          if (!(bill.participants as string[]).includes(memberId)) return sum;
+          return sum + bill.amount / bill.participants.length;
+        }, 0);
+        return { currency, paid, owed, balance: paid - owed };
+      })
+      .filter((entry) => entry.paid > 0.005 || entry.owed > 0.005);
+  }
+
+  function summarizeGroupCurrencies(memberIds: string[], sourceBills: typeof normalizedBills): SummaryCurrency[] {
+    const billCurrencies = [...new Set(sourceBills.map((bill) => bill.currency as string))];
+    return billCurrencies
+      .map((currency) => {
+        const currBills = sourceBills.filter((bill) => bill.currency === currency);
+        const paid = currBills
+          .filter((bill) => memberIds.includes(bill.payer_id))
+          .reduce((sum, bill) => sum + bill.amount, 0);
+        const owed = currBills.reduce((sum, bill) => {
+          const participantsInGroup = (bill.participants as string[]).filter((pid) => memberIds.includes(pid)).length;
+          return sum + (bill.amount / bill.participants.length) * participantsInGroup;
+        }, 0);
+        return { currency, paid, owed, balance: paid - owed };
+      })
+      .filter((entry) => entry.paid > 0.005 || entry.owed > 0.005);
+  }
+
   const memberMap = Object.fromEntries((members ?? []).map((m) => [m.id, m.name]));
 
-  const billBreakdown = (bills ?? []).map((b) => ({
+  const billBreakdown = normalizedBills.map((b) => ({
     id: b.id,
     title: b.title,
-    amount: Number(b.amount),
+    amount: b.amount,
     currency: b.currency,
+    entryType: b.entryType,
     payerName: memberMap[b.payer_id] ?? "-",
     date: b.date ?? null,
     shares: (b.participants as string[]).map((pid) => ({
       name: memberMap[pid] ?? "-",
-      share: Number(b.amount) / b.participants.length,
+      share: b.amount / b.participants.length,
     })),
   }));
 
   // compute per-person summary grouped by currency
-  const currencies = [...new Set((bills ?? []).map((b) => b.currency as string))];
+  const settlementCurrencies = [...new Set(normalizedBills.map((b) => b.currency as string))];
+  const advanceBills = normalizedBills.filter((bill) => !isExpenseEntry(bill.entryType));
   const perPerson = (members ?? []).map((m) => ({
     id: m.id,
     name: m.name,
     groupName: hasNamedGroups ? getGroupLabel(m) : null,
-    currencies: currencies
-      .map((currency) => {
-        const currBills = (bills ?? []).filter((b) => b.currency === currency);
-        const paid = currBills
-          .filter((b) => b.payer_id === m.id)
-          .reduce((s, b) => s + Number(b.amount), 0);
-        const owed = currBills.reduce((s, b) => {
-          if (!(b.participants as string[]).includes(m.id)) return s;
-          return s + Number(b.amount) / b.participants.length;
-        }, 0);
-        return { currency, paid, owed, balance: paid - owed };
-      })
-      .filter((c) => c.paid > 0.005 || c.owed > 0.005),
+    currencies: summarizeMemberCurrencies(m.id, expenseBills),
+    advanceCurrencies: summarizeMemberCurrencies(m.id, advanceBills),
   }));
 
   // group-level aggregates
@@ -81,33 +123,23 @@ export default async function ReportPage({
     groupName,
     isGroup: namedGroups.has(groupName),
     memberCount: memberIds.length,
-    currencies: currencies
-      .map((currency) => {
-        const currBills = (bills ?? []).filter((b) => b.currency === currency);
-        const paid = currBills
-          .filter((b) => memberIds.includes(b.payer_id))
-          .reduce((s, b) => s + Number(b.amount), 0);
-        const owed = currBills.reduce((s, b) => {
-          const cnt = (b.participants as string[]).filter((pid) => memberIds.includes(pid)).length;
-          return s + (Number(b.amount) / b.participants.length) * cnt;
-        }, 0);
-        return { currency, paid, owed, balance: paid - owed };
-      })
-      .filter((c) => c.paid > 0.005 || c.owed > 0.005),
+    currencies: summarizeGroupCurrencies(memberIds, expenseBills),
+    advanceCurrencies: summarizeGroupCurrencies(memberIds, advanceBills),
     }));
 
   const settlements = computeSettlementMultiCurrency(
     members ?? [],
-    (bills ?? []).map((b) => ({ ...b, amount: Number(b.amount), currency: b.currency as string }))
+    normalizedBills.map((b) => ({ ...b, amount: b.amount, currency: b.currency as string }))
   );
 
-  // group-to-group settlement (aggregate individual balances by group)
-  const groupSettlements = currencies.flatMap((currency) => {
+  // group-to-group settlement combines expense bills and direct transfer entries.
+  const groupSettlements = settlementCurrencies.flatMap((currency) => {
+    const currBills = normalizedBills.filter((bill) => bill.currency === currency);
+    const memberBalances = computeBalances(members ?? [], currBills);
     const groupBals = new Map<string, number>();
-    for (const p of perPerson) {
-      if (!p.groupName) continue;
-      const c = p.currencies.find((c) => c.currency === currency);
-      if (c) groupBals.set(p.groupName, (groupBals.get(p.groupName) ?? 0) + c.balance);
+    for (const member of members ?? []) {
+      const groupName = hasNamedGroups ? getGroupLabel(member) : member.name;
+      groupBals.set(groupName, (groupBals.get(groupName) ?? 0) + (memberBalances[member.id] ?? 0));
     }
     const creds = [...groupBals.entries()]
       .filter(([, b]) => b > 0.005)
