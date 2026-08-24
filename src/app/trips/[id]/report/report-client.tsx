@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { TripTabBar } from "@/components/trip-tab-bar";
 import type { Settlement } from "@/lib/balance";
 
 type BillBreakdown = {
@@ -68,14 +68,10 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <Link
-          href={`/trips/${tripId}`}
-          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="font-semibold text-slate-900">สรุป</h1>
+      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3">
+        <div className="text-center">
+          <h1 className="font-semibold text-slate-900">สรุป</h1>
+        </div>
       </header>
 
       {/* Tabs */}
@@ -97,7 +93,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
         </div>
       </div>
 
-      <div className="max-w-sm mx-auto px-4 py-4">
+      <div className="max-w-sm mx-auto px-4 py-4 pb-28">
         {/* Bill Breakdown */}
         {tab === "breakdown" && (
           <div className="space-y-4">
@@ -333,6 +329,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
           </div>
         )}
       </div>
+      <TripTabBar tripId={tripId} />
     </div>
   );
 }

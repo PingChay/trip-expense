@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TripTabBar } from "@/components/trip-tab-bar";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import type { BillInput } from "@/lib/types";
 
@@ -110,7 +111,7 @@ export function BillFormClient({
         )}
       </header>
 
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto px-4 py-6 space-y-5">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto px-4 py-6 pb-28 space-y-5">
         {/* Title */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">ชื่อรายการ *</label>
@@ -313,6 +314,7 @@ export function BillFormClient({
           </Button>
         </div>
       </form>
+      <TripTabBar tripId={tripId} />
     </div>
   );
 }

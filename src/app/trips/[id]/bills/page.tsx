@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, ChevronRight, Receipt } from "lucide-react";
+import { TripTabBar } from "@/components/trip-tab-bar";
+import { Plus, ChevronRight, Receipt } from "lucide-react";
 
 export default async function BillsPage({
   params,
@@ -28,22 +29,18 @@ export default async function BillsPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <Link
-          href={`/trips/${id}`}
-          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="font-semibold text-slate-900 flex-1">บิลทั้งหมด</h1>
-        <Link href={`/trips/${id}/bills/new`}>
-          <Button size="sm" className="gap-1">
-            <Plus className="h-4 w-4" /> เพิ่ม
-          </Button>
-        </Link>
+      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3">
+        <div className="relative mx-auto max-w-sm text-center">
+          <h1 className="font-semibold text-slate-900">บิลทั้งหมด</h1>
+          <Link href={`/trips/${id}/bills/new`} className="absolute right-0 top-1/2 -translate-y-1/2">
+            <Button size="sm" className="gap-1">
+              <Plus className="h-4 w-4" /> เพิ่ม
+            </Button>
+          </Link>
+        </div>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 py-4">
+      <div className="max-w-sm mx-auto px-4 py-4 pb-28">
         {!bills?.length ? (
           <div className="text-center py-16 space-y-3">
             <Receipt className="h-10 w-10 text-slate-300 mx-auto" />
@@ -85,6 +82,7 @@ export default async function BillsPage({
           </ul>
         )}
       </div>
+      <TripTabBar tripId={id} />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
-import { Receipt, Plus, Users, BarChart3, ArrowLeft } from "lucide-react";
+import { TripTabBar } from "@/components/trip-tab-bar";
+import { LogOut } from "lucide-react";
 
 type Member = { id: string; name: string };
 type Bill = { id: string; amount: number; payer_id: string; participants: string[]; currency: string };
@@ -62,17 +62,21 @@ export default async function TripDashboard({
     <div className="min-h-screen bg-slate-50">
       <TripTracker tripId={id} tripName={trip.name} />
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <Link href="/" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex-1 min-w-0">
+      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3">
+        <div className="relative mx-auto min-w-0 max-w-sm text-center">
           <h1 className="font-semibold text-slate-900 truncate">{trip.name}</h1>
           {dateRange && <p className="text-xs text-slate-400">{dateRange}</p>}
+          <Link
+            href="/"
+            aria-label="ออกจากทริป"
+            className="absolute left-0 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <LogOut className="h-4 w-4" />
+          </Link>
         </div>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-sm mx-auto px-4 py-6 pb-28 space-y-5">
         {/* Trip ID + Share */}
         <div className="bg-white rounded-2xl border p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -152,34 +156,8 @@ export default async function TripDashboard({
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href={`/trips/${id}/bills/new`}>
-            <Button className="w-full h-14 flex-col gap-1 text-sm">
-              <Plus className="h-5 w-5" />
-              เพิ่มบิล
-            </Button>
-          </Link>
-          <Link href={`/trips/${id}/bills`}>
-            <Button variant="outline" className="w-full h-14 flex-col gap-1 text-sm">
-              <Receipt className="h-5 w-5" />
-              บิลทั้งหมด
-            </Button>
-          </Link>
-          <Link href={`/trips/${id}/members`}>
-            <Button variant="outline" className="w-full h-14 flex-col gap-1 text-sm">
-              <Users className="h-5 w-5" />
-              สมาชิก
-            </Button>
-          </Link>
-          <Link href={`/trips/${id}/report`}>
-            <Button variant="outline" className="w-full h-14 flex-col gap-1 text-sm">
-              <BarChart3 className="h-5 w-5" />
-              สรุป
-            </Button>
-          </Link>
-        </div>
       </div>
+      <TripTabBar tripId={id} />
     </div>
   );
 }

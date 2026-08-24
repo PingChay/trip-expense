@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, X, Pencil, Check, Users, ChevronDown } from "lucide-react";
+import { TripTabBar } from "@/components/trip-tab-bar";
+import { Plus, X, Pencil, Check, Users, ChevronDown } from "lucide-react";
 import { addMember, updateMember, deleteMember } from "./actions";
 
 type Member = { id: string; name: string; active: boolean; group_name?: string | null };
@@ -161,19 +162,18 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <Link href={`/trips/${tripId}`} className="p-1 rounded-lg text-slate-500 hover:bg-slate-100">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="font-semibold text-slate-900">
-          สมาชิก
-          {members.length > 0 && (
-            <span className="ml-2 text-sm text-slate-400 font-normal">{members.length} คน</span>
-          )}
-        </h1>
+      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3">
+        <div className="text-center">
+          <h1 className="font-semibold text-slate-900">
+            สมาชิก
+            {members.length > 0 && (
+              <span className="ml-2 text-sm text-slate-400 font-normal">{members.length} คน</span>
+            )}
+          </h1>
+        </div>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-sm mx-auto px-4 py-6 pb-28 space-y-4">
         {/* Grouped member list */}
         {groupKeys.map((groupKey) => (
           <div key={groupKey}>
@@ -301,6 +301,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
           />
         </div>
       </div>
+      <TripTabBar tripId={tripId} />
     </div>
   );
 }
