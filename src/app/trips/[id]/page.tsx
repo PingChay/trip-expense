@@ -60,7 +60,7 @@ export default async function TripDashboard({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <TripTracker tripId={id} />
+      <TripTracker tripId={id} tripName={trip.name} />
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
         <Link href="/" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100">

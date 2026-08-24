@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlaneTakeoff, Users, ChevronRight } from "lucide-react";
-import { getRecentTrips } from "@/components/trip-tracker";
+import { getRecentTrips, type RecentTrip } from "@/components/trip-tracker";
 
 export default function HomePage() {
   const router = useRouter();
   const [tripId, setTripId] = useState("");
-  const [recentTrips, setRecentTrips] = useState<string[]>([]);
+  const [recentTrips, setRecentTrips] = useState<RecentTrip[]>([]);
 
   useEffect(() => {
     setRecentTrips(getRecentTrips());
@@ -47,15 +47,16 @@ export default function HomePage() {
               ทริปของฉัน
             </p>
             <ul className="bg-white rounded-xl border divide-y">
-              {recentTrips.map((id) => (
-                <li key={id}>
+              {recentTrips.map((trip) => (
+                <li key={trip.tripId}>
                   <button
-                    onClick={() => router.push(`/trips/${id}`)}
+                    onClick={() => router.push(`/trips/${trip.tripId}`)}
                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
                   >
-                    <span className="font-mono font-semibold tracking-widest text-slate-800">
-                      {id}
-                    </span>
+                    <div className="min-w-0 text-left">
+                      <p className="truncate font-medium text-slate-800">{trip.tripName}</p>
+                      <p className="mt-0.5 font-mono text-[9px] tracking-normal text-slate-400">{trip.tripId}</p>
+                    </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
                   </button>
                 </li>
