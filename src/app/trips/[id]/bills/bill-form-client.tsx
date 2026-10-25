@@ -234,7 +234,7 @@ export function BillFormClient({
           <div
             role="radiogroup"
             aria-labelledby="payer-label"
-            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
+            className="flex flex-wrap gap-2"
           >
             {members.map((m) => {
               const selected = payerId === m.id;
