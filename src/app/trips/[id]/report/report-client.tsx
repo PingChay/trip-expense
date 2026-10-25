@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { Check, Users } from "lucide-react";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
@@ -76,60 +76,88 @@ interface Props {
 
 type Tab = "breakdown" | "person" | "group" | "settlement";
 
-type CurrencyBalance = {
+type SummaryItem = { currency: string; paid: number; owed: number; balance: number };
+
+/** One currency of a card: expense paid/share, plus transfers already made or received. */
+type LedgerLine = {
   currency: string;
+  paid: number;
+  owed: number;
+  sent: number;
+  received: number;
+  expenseBalance: number;
   balance: number;
 };
-
-function mergeBalances(primary: CurrencyBalance[], secondary: CurrencyBalance[]) {
-  const totals = new Map<string, number>();
-
-  for (const item of primary) {
-    totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.balance);
-  }
-
-  for (const item of secondary) {
-    totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.balance);
-  }
-
-  return Array.from(totals.entries()).map(([currency, balance]) => ({ currency, balance }));
-}
-
-type SummaryItem = { currency: string; paid: number; owed: number; balance: number };
 
 const money = (value: number) =>
   value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const round2 = (value: number) => Math.round(value * 100) / 100;
+const isZero = (value: number) => Math.abs(round2(value)) < 0.005;
+
+function ledgerLines(expense: SummaryItem[], payments: SummaryItem[]): LedgerLine[] {
+  const currencies = [...new Set([...expense, ...payments].map((item) => item.currency))];
+  return currencies.map((currency) => {
+    const e = expense.find((item) => item.currency === currency);
+    const p = payments.find((item) => item.currency === currency);
+    return {
+      currency,
+      paid: e?.paid ?? 0,
+      owed: e?.owed ?? 0,
+      sent: p?.paid ?? 0,
+      received: p?.owed ?? 0,
+      expenseBalance: e?.balance ?? 0,
+      balance: (e?.balance ?? 0) + (p?.balance ?? 0),
+    };
+  });
+}
 
 /** "+" = gets money back, "−" = needs to pay; colour carries the same meaning at a glance. */
-function signed(balance: number, advance = false) {
+function signed(balance: number) {
   const rounded = round2(balance);
   const sign = rounded > 0.005 ? "+" : rounded < -0.005 ? "−" : "";
-  const tone = advance
-    ? sign
-      ? "text-amber-700"
-      : "text-amber-700/60"
-    : sign === "+"
-      ? "text-positive"
-      : sign === "−"
-        ? "text-negative"
-        : "text-slate-400";
+  const tone = sign === "+" ? "text-positive" : sign === "−" ? "text-negative" : "text-slate-400";
   return { text: `${sign}${money(Math.abs(rounded))}`, tone, sign };
 }
 
-function Verdict({ items }: { items: CurrencyBalance[] }) {
+/**
+ * Settled lines say why they are settled: someone who owed and has transferred is
+ * "paid", someone who was owed and got it back is "received", anyone else never owed.
+ */
+function settledStatus(line: LedgerLine) {
+  if (line.expenseBalance < -0.005) return "จ่ายเรียบร้อยแล้ว";
+  if (line.expenseBalance > 0.005) return "ได้รับครบแล้ว";
+  return null;
+}
+
+function Verdict({ lines }: { lines: LedgerLine[] }) {
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
-      {items.map((item) => {
-        const v = signed(item.balance);
-        const pill =
-          v.sign === "+" ? "bg-emerald-50" : v.sign === "−" ? "bg-red-50" : "bg-slate-100";
+      {lines.map((line) => {
+        const currencyTag = lines.length > 1 && <span className="text-xs font-medium"> {line.currency}</span>;
+        if (isZero(line.balance)) {
+          const status = settledStatus(line);
+          return status ? (
+            <span
+              key={line.currency}
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[13px] font-semibold leading-none text-positive"
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+              {status}
+              {currencyTag}
+            </span>
+          ) : (
+            <span key={line.currency} className="rounded-full bg-slate-100 px-2.5 py-1 text-[13px] font-medium leading-none text-slate-500">
+              ไม่ต้องโอน{currencyTag}
+            </span>
+          );
+        }
+        const v = signed(line.balance);
         return (
           <span
-            key={item.currency}
-            className={`rounded-full px-2.5 py-1 text-[15px] font-semibold leading-none tabular-nums ${pill} ${v.tone}`}
+            key={line.currency}
+            className={`rounded-full px-2.5 py-1 text-[15px] font-semibold leading-none tabular-nums ${v.sign === "+" ? "bg-emerald-50" : "bg-red-50"} ${v.tone}`}
           >
-            {v.text} <span className="text-xs font-medium">{item.currency}</span>
+            {v.text} <span className="text-xs font-medium">{line.currency}</span>
           </span>
         );
       })}
@@ -142,55 +170,40 @@ function SignLegend() {
     <p className="flex items-center gap-3 px-1 text-xs text-slate-500">
       <span><b className="font-semibold text-positive">+</b> ได้คืน</span>
       <span><b className="font-semibold text-negative">−</b> ต้องจ่าย</span>
-      <span className="flex items-center gap-1">
-        <span className="size-2.5 rounded-sm bg-amber-200" /> การจ่ายเงิน
-      </span>
     </p>
   );
 }
 
-/** Receipt-style breakdown: paid, minus own share, equals what this part contributes. */
-function LedgerSection({
-  title,
-  items,
-  paidLabel,
-  owedLabel,
-  advance = false,
-}: {
-  title: string;
-  items: SummaryItem[];
-  paidLabel: string;
-  owedLabel: string;
-  advance?: boolean;
-}) {
+function LedgerRow({ label, value, currency }: { label: string; value: string; currency: string }) {
   return (
-    <div className={advance ? "rounded-xl bg-amber-50 p-3" : ""}>
-      <p className={`mb-2 text-xs font-semibold ${advance ? "text-amber-800" : "text-slate-500"}`}>
-        {title}
-      </p>
-      {items.map(({ currency, paid, owed, balance }) => {
-        const net = signed(balance, advance);
+    <div className="flex justify-between text-slate-600">
+      <span>{label}</span>
+      <span className="tabular-nums">
+        {value} {currency}
+      </span>
+    </div>
+  );
+}
+
+/** Receipt-style breakdown: paid, minus own share, then transfers already settled, equals what is left. */
+function Ledger({ lines, labels }: { lines: LedgerLine[]; labels: { paid: string; owed: string } }) {
+  return (
+    <div className="space-y-3">
+      {lines.map((line) => {
+        const net = signed(line.balance);
         return (
-          <div key={currency} className="mb-3 space-y-1 text-sm last:mb-0">
-            {items.length > 1 && <p className="text-xs font-semibold text-slate-500">{currency}</p>}
-            <div className="flex justify-between text-slate-600">
-              <span>{paidLabel}</span>
-              <span className="tabular-nums">
-                {money(paid)} {currency}
-              </span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>{owedLabel}</span>
-              <span className="tabular-nums">
-                − {money(owed)} {currency}
-              </span>
-            </div>
-            <div
-              className={`flex justify-between border-t pt-1.5 font-medium ${advance ? "border-amber-200/70" : "border-slate-100"}`}
-            >
+          <div key={line.currency} className="space-y-1 text-sm">
+            {lines.length > 1 && <p className="text-xs font-semibold text-slate-500">{line.currency}</p>}
+            <LedgerRow label={labels.paid} value={money(line.paid)} currency={line.currency} />
+            <LedgerRow label={labels.owed} value={`− ${money(line.owed)}`} currency={line.currency} />
+            {line.sent > 0.005 && <LedgerRow label="โอนแล้ว" value={`+ ${money(line.sent)}`} currency={line.currency} />}
+            {line.received > 0.005 && (
+              <LedgerRow label="ได้รับแล้ว" value={`− ${money(line.received)}`} currency={line.currency} />
+            )}
+            <div className="flex justify-between border-t border-slate-100 pt-1.5 font-medium">
               <span className="text-slate-700">สรุป</span>
               <span className={`tabular-nums ${net.tone}`}>
-                {net.text} {currency}
+                {net.text} {line.currency}
               </span>
             </div>
           </div>
@@ -200,12 +213,8 @@ function LedgerSection({
   );
 }
 
-const LEDGER_LABELS = {
-  paid: "จ่ายไป",
-  owed: "ส่วนของตัวเอง",
-  advancePaid: "จ่ายให้คนอื่น",
-  advanceOwed: "ได้รับจากคนอื่น",
-};
+const LEDGER_LABELS = { paid: "จ่ายไป", owed: "ส่วนของตัวเอง" };
+const GROUP_LEDGER_LABELS = { paid: "จ่ายไป", owed: "ส่วนของกลุ่ม" };
 
 function SummaryCard({
   heading,
@@ -216,33 +225,16 @@ function SummaryCard({
   heading: React.ReactNode;
   currencies: SummaryItem[];
   advanceCurrencies: SummaryItem[];
-  labels: { paid: string; owed: string; advancePaid: string; advanceOwed: string };
+  labels: { paid: string; owed: string };
 }) {
-  const empty = currencies.length === 0 && advanceCurrencies.length === 0;
+  const lines = ledgerLines(currencies, advanceCurrencies);
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
       <div className="mb-3 flex items-start justify-between gap-3">
         {heading}
-        {!empty && <Verdict items={mergeBalances(currencies, advanceCurrencies)} />}
+        {lines.length > 0 && <Verdict lines={lines} />}
       </div>
-      {empty ? (
-        <p className="text-xs text-slate-400">ยังไม่มีบิล</p>
-      ) : (
-        <div className="space-y-4">
-          {currencies.length > 0 && (
-            <LedgerSection title="ค่าใช้จ่าย" items={currencies} paidLabel={labels.paid} owedLabel={labels.owed} />
-          )}
-          {advanceCurrencies.length > 0 && (
-            <LedgerSection
-              advance
-              title="การจ่ายเงิน"
-              items={advanceCurrencies}
-              paidLabel={labels.advancePaid}
-              owedLabel={labels.advanceOwed}
-            />
-          )}
-        </div>
-      )}
+      {lines.length === 0 ? <p className="text-xs text-slate-400">ยังไม่มีบิล</p> : <Ledger lines={lines} labels={labels} />}
     </div>
   );
 }
@@ -389,7 +381,7 @@ export function ReportClient({
                 }
                 currencies={g.currencies}
                 advanceCurrencies={g.advanceCurrencies}
-                labels={LEDGER_LABELS}
+                labels={g.isGroup ? GROUP_LEDGER_LABELS : LEDGER_LABELS}
               />
             ))}
           </div>
