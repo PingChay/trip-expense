@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { billShares, computeBalances, computeSettlementMultiCurrency } from "@/lib/balance";
+import { billShares, computeGroupSettlements, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
 type SummaryCurrency = {
@@ -104,7 +104,6 @@ export default async function ReportPage({
   });
 
   // compute per-person summary grouped by currency
-  const settlementCurrencies = [...new Set(normalizedBills.map((b) => b.currency as string))];
   const advanceBills = normalizedBills.filter((bill) => !isExpenseEntry(bill.entryType));
   const perPerson = (members ?? []).map((m) => ({
     id: m.id,
@@ -138,53 +137,7 @@ export default async function ReportPage({
   );
 
   // group-to-group settlement combines expense bills and direct transfer entries.
-  const groupSettlements = settlementCurrencies.flatMap((currency) => {
-    const currBills = normalizedBills.filter((bill) => bill.currency === currency);
-    const memberBalances = computeBalances(members ?? [], currBills);
-    const groupBals = new Map<string, number>();
-    for (const member of members ?? []) {
-      const groupName = hasNamedGroups ? getGroupLabel(member) : member.name;
-      groupBals.set(groupName, (groupBals.get(groupName) ?? 0) + (memberBalances[member.id] ?? 0));
-    }
-    const creds = [...groupBals.entries()]
-      .filter(([, b]) => b > 0.005)
-      .map(([n, a]) => ({ id: n, amount: a }))
-      .sort((a, b) => b.amount - a.amount);
-    const debs = [...groupBals.entries()]
-      .filter(([, b]) => b < -0.005)
-      .map(([n, a]) => ({ id: n, amount: -a }))
-      .sort((a, b) => b.amount - a.amount);
-    const result: {
-      fromId: string;
-      fromName: string;
-      fromIsGroup: boolean;
-      toId: string;
-      toName: string;
-      toIsGroup: boolean;
-      amount: number;
-      currency: string;
-    }[] = [];
-    while (creds.length && debs.length) {
-      const c = creds[0], d = debs[0];
-      const amount = Math.min(c.amount, d.amount);
-      if (amount > 0.005)
-        result.push({
-          fromId: d.id,
-          fromName: d.id,
-          fromIsGroup: namedGroups.has(d.id),
-          toId: c.id,
-          toName: c.id,
-          toIsGroup: namedGroups.has(c.id),
-          amount: Math.round(amount * 100) / 100,
-          currency,
-        });
-      c.amount -= amount;
-      d.amount -= amount;
-      if (c.amount < 0.005) creds.shift();
-      if (d.amount < 0.005) debs.shift();
-    }
-    return result;
-  });
+  const groupSettlements = computeGroupSettlements(members ?? [], normalizedBills);
 
   return (
     <ReportClient

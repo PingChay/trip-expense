@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TripTabBar } from "@/components/trip-tab-bar";
 import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
 import { billShares } from "@/lib/balance";
 import { PageHeader, headerIconButton } from "@/components/page-header";
@@ -15,6 +14,17 @@ import type { BillInput } from "@/lib/types";
 const fieldLabel = "text-sm font-medium text-slate-700";
 const fieldInput = "h-12 rounded-xl border-input bg-white px-3.5 text-[15px]";
 const fieldError = "text-xs text-destructive";
+
+const lastPayerKey = (tripId: string) => `tripsplit_last_payer_${tripId}`;
+const noopSubscribe = () => () => {};
+
+function readLastPayer(tripId: string) {
+  try {
+    return localStorage.getItem(lastPayerKey(tripId));
+  } catch {
+    return null;
+  }
+}
 
 interface Member {
   id: string;
@@ -46,13 +56,20 @@ export function BillFormClient({
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
   const [currency, setCurrency] = useState(initialData?.currency ?? "THB");
-  const [payerId, setPayerId] = useState(initialData?.payerId ?? members[0]?.id ?? "");
+  // new bills default to whoever paid last on this device; null on the server
+  const lastPayer = useSyncExternalStore(noopSubscribe, () => readLastPayer(tripId), () => null);
+  const [payerChoice, setPayerChoice] = useState<string | null>(initialData?.payerId ?? null);
+  const payerId =
+    payerChoice ?? (members.some((m) => m.id === lastPayer) ? lastPayer! : members[0]?.id ?? "");
   const [participants, setParticipants] = useState<string[]>(
     initialData?.participants ?? members.map((m) => m.id)
   );
   const [date, setDate] = useState(initialData?.date ?? today);
   const [note, setNote] = useState(initialData?.note ?? "");
   const [entryType, setEntryType] = useState<BillEntryType>(initialData?.entryType ?? "expense");
+  const [showMore, setShowMore] = useState(
+    initialData?.entryType === "advance" || Boolean(initialData?.note?.trim())
+  );
   const [usePersonal, setUsePersonal] = useState(
     Object.keys(initialData?.personalAmounts ?? {}).length > 0
   );
@@ -114,6 +131,9 @@ export function BillFormClient({
       setErrors(newErrors);
       return;
     }
+    try {
+      localStorage.setItem(lastPayerKey(tripId), payerId);
+    } catch {}
     startTransition(async () => {
       await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType, personalAmounts });
     });
@@ -151,23 +171,7 @@ export function BillFormClient({
         }
       />
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pb-32 pt-5">
-        {/* Title */}
-        <div className="space-y-2">
-          <label className={fieldLabel}>ชื่อรายการ *</label>
-          <Input
-            placeholder="เช่น ค่าที่พัก, ค่าอาหารเย็น"
-            value={title}
-            aria-invalid={!!errors.title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setErrors((er) => ({ ...er, title: undefined }));
-            }}
-            className={fieldInput}
-          />
-          {errors.title && <p className={fieldError}>{errors.title}</p>}
-        </div>
-
+      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pt-5">
         {/* Amount + Currency */}
         <div className="space-y-2">
           <label className={fieldLabel}>จำนวนเงิน *</label>
@@ -183,6 +187,7 @@ export function BillFormClient({
               step="0.01"
               min="0"
               placeholder="0.00"
+              autoFocus={!initialData}
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value);
@@ -207,58 +212,54 @@ export function BillFormClient({
           {errors.amount && <p className={fieldError}>{errors.amount}</p>}
         </div>
 
+        {/* Title */}
         <div className="space-y-2">
-          <label className={fieldLabel}>ประเภทบิล</label>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
-              { value: "advance", description: "โอนเก็บ/เงินสำรอง ไม่นับรวมยอดใช้จริง" },
-            ] as const).map((option) => {
-              const active = entryType === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setEntryType(option.value)}
-                  className={[
-                    "rounded-xl border px-3.5 py-3 text-left transition-[background-color,border-color,box-shadow] duration-150",
-                    active
-                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_6px_16px_-8px_rgb(15_23_42/0.6)]"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
-                  ].join(" ")}
-                >
-                  <p className="text-sm font-semibold">{getBillEntryLabel(option.value)}</p>
-                  <p className={`mt-1 text-xs leading-snug ${active ? "text-slate-300" : "text-slate-500"}`}>
-                    {option.description}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+          <label className={fieldLabel}>ชื่อรายการ *</label>
+          <Input
+            placeholder="เช่น ค่าที่พัก, ค่าอาหารเย็น"
+            value={title}
+            aria-invalid={!!errors.title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setErrors((er) => ({ ...er, title: undefined }));
+            }}
+            className={fieldInput}
+          />
+          {errors.title && <p className={fieldError}>{errors.title}</p>}
         </div>
 
         {/* Payer */}
         <div className="space-y-2">
-          <label className={fieldLabel}>ผู้จ่าย *</label>
-          <div className="relative">
-            <select
-              value={payerId}
-              aria-invalid={!!errors.payer}
-              onChange={(e) => {
-                setPayerId(e.target.value);
-                setErrors((er) => ({ ...er, payer: undefined }));
-              }}
-              className={`${fieldInput} w-full appearance-none border pr-10 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30`}
-            >
-              <option value="">-- เลือกผู้จ่าย --</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
+          <label id="payer-label" className={fieldLabel}>ใครจ่าย *</label>
+          <div
+            role="radiogroup"
+            aria-labelledby="payer-label"
+            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
+          >
+            {members.map((m) => {
+              const selected = payerId === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => {
+                    setPayerChoice(m.id);
+                    setErrors((er) => ({ ...er, payer: undefined }));
+                  }}
+                  className={[
+                    "flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-sm transition-[background-color,border-color,color] duration-150",
+                    selected
+                      ? "border-slate-900 bg-slate-900 font-medium text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
+                  ].join(" ")}
+                >
+                  <MemberAvatar name={m.name} size="sm" />
                   {m.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </button>
+              );
+            })}
           </div>
           {errors.payer && <p className={fieldError}>{errors.payer}</p>}
         </div>
@@ -436,6 +437,53 @@ export function BillFormClient({
           )}
         </div>
 
+        {/* Rarely changed details stay folded so the common path is short */}
+        <details
+          open={showMore}
+          onToggle={(e) => setShowMore(e.currentTarget.open)}
+          className="group rounded-2xl border border-slate-200/80 bg-white"
+        >
+          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-slate-900">เพิ่มเติม</span>
+              <span className="mt-0.5 block truncate text-xs text-slate-500">
+                {[getBillEntryLabel(entryType), date, note.trim() ? "มีหมายเหตุ" : "ไม่มีหมายเหตุ"].join(" · ")}
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
+          </summary>
+          <div className="space-y-6 border-t border-slate-100 px-4 pb-4 pt-4">
+        <div className="space-y-2">
+          <label className={fieldLabel}>ประเภทบิล</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
+              { value: "advance", description: "โอนเก็บ/เงินสำรอง ไม่นับรวมยอดใช้จริง" },
+            ] as const).map((option) => {
+              const active = entryType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setEntryType(option.value)}
+                  className={[
+                    "rounded-xl border px-3.5 py-3 text-left transition-[background-color,border-color,box-shadow] duration-150",
+                    active
+                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_6px_16px_-8px_rgb(15_23_42/0.6)]"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
+                  ].join(" ")}
+                >
+                  <p className="text-sm font-semibold">{getBillEntryLabel(option.value)}</p>
+                  <p className={`mt-1 text-xs leading-snug ${active ? "text-slate-300" : "text-slate-500"}`}>
+                    {option.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Date */}
         <div className="space-y-2">
           <label className={fieldLabel}>วันที่</label>
@@ -463,23 +511,16 @@ export function BillFormClient({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-1">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 flex-1 rounded-xl bg-white text-[15px]"
-            onClick={() => router.back()}
-          >
-            ยกเลิก
-          </Button>
-          <Button type="submit" className="h-12 flex-1 rounded-xl text-[15px]" disabled={isPending || isDeleting}>
+          </div>
+        </details>
+        {/* Save stays reachable without scrolling past every field */}
+        <div className="sticky bottom-0 -mx-4 border-t border-slate-200/80 bg-background/90 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur-md">
+          <Button type="submit" className="h-12 w-full rounded-xl text-[15px]" disabled={isPending || isDeleting}>
             {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
         </div>
       </form>
-      <TripTabBar tripId={tripId} />
     </div>
   );
 }

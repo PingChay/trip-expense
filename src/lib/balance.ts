@@ -129,3 +129,59 @@ export function computeSettlementMultiCurrency(
     return transactions;
   });
 }
+
+export type GroupSettlement = Settlement & { fromIsGroup: boolean; toIsGroup: boolean };
+
+/**
+ * Settle between named groups when the trip has any (members without a group stand alone),
+ * otherwise between members. Ids and names are the group or member label.
+ */
+export function computeGroupSettlements(
+  members: Array<Member & { group_name?: string | null }>,
+  bills: Array<Bill & { currency: string }>
+): GroupSettlement[] {
+  const hasNamedGroups = members.some((member) => Boolean(member.group_name?.trim()));
+  const namedGroups = new Set(members.map((member) => member.group_name?.trim()).filter(Boolean) as string[]);
+  const labelOf = (member: Member & { group_name?: string | null }) =>
+    hasNamedGroups ? member.group_name?.trim() || member.name : member.name;
+  const currencies = [...new Set(bills.map((bill) => bill.currency))];
+
+  return currencies.flatMap((currency) => {
+    const memberBalances = computeBalances(members, bills.filter((bill) => bill.currency === currency));
+    const groupBals = new Map<string, number>();
+    for (const member of members) {
+      const label = labelOf(member);
+      groupBals.set(label, (groupBals.get(label) ?? 0) + (memberBalances[member.id] ?? 0));
+    }
+    const creds = [...groupBals.entries()]
+      .filter(([, b]) => b > 0.005)
+      .map(([n, a]) => ({ id: n, amount: a }))
+      .sort((a, b) => b.amount - a.amount);
+    const debs = [...groupBals.entries()]
+      .filter(([, b]) => b < -0.005)
+      .map(([n, a]) => ({ id: n, amount: -a }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const result: GroupSettlement[] = [];
+    while (creds.length && debs.length) {
+      const c = creds[0], d = debs[0];
+      const amount = Math.min(c.amount, d.amount);
+      if (amount > 0.005)
+        result.push({
+          fromId: d.id,
+          fromName: d.id,
+          fromIsGroup: namedGroups.has(d.id),
+          toId: c.id,
+          toName: c.id,
+          toIsGroup: namedGroups.has(c.id),
+          amount: Math.round(amount * 100) / 100,
+          currency,
+        });
+      c.amount -= amount;
+      d.amount -= amount;
+      if (c.amount < 0.005) creds.shift();
+      if (d.amount < 0.005) debs.shift();
+    }
+    return result;
+  });
+}

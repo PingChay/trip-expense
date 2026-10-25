@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { computeBalances } from "@/lib/balance";
+import { computeBalances, computeGroupSettlements } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
+import { TransferParties } from "@/components/transfer-parties";
 import { ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
 
 export default async function TripDashboard({
@@ -19,7 +20,7 @@ export default async function TripDashboard({
 
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
-    supabase.from("members").select("id, name").eq("trip_id", id).order("created_at"),
+    supabase.from("members").select("id, name, group_name").eq("trip_id", id).order("created_at"),
     supabase.from("bills").select("id, amount, payer_id, participants, currency, note").eq("trip_id", id),
   ]);
 
@@ -53,6 +54,8 @@ export default async function TripDashboard({
       ? trip.start_date
       : null;
 
+  const settlements = computeGroupSettlements(members ?? [], normalizedBills);
+  const SETTLEMENT_PREVIEW = 3;
   const memberCount = (members ?? []).length;
   const billCount = (bills ?? []).length;
 
@@ -116,6 +119,33 @@ export default async function TripDashboard({
             </div>
           </dl>
         </section>
+
+        {/* Who pays whom: the question people open the trip to answer */}
+        {settlements.length > 0 && (
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+            <h2 className="px-4 pb-1 pt-4 text-sm font-semibold text-slate-900">ต้องโอนเงิน</h2>
+            <ul className="divide-y divide-slate-100">
+              {settlements.slice(0, SETTLEMENT_PREVIEW).map((s) => (
+                <li key={`${s.fromId}-${s.toId}-${s.currency}`} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <TransferParties from={s.fromName} to={s.toName} fromIsGroup={s.fromIsGroup} toIsGroup={s.toIsGroup} />
+                  <p className="shrink-0 font-semibold tabular-nums text-slate-900">
+                    {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                    <span className="text-xs font-medium text-slate-400">{s.currency}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href={`/trips/${id}/report`}
+              className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+            >
+              {settlements.length > SETTLEMENT_PREVIEW
+                ? `ดูการโอนทั้งหมด ${settlements.length} รายการ`
+                : "ดูสรุปโอนเงิน"}
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </Link>
+          </section>
+        )}
 
         {/* Quick balance */}
         {memberCount > 0 && normalizedBills.length > 0 ? (
