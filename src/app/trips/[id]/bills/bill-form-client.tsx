@@ -458,7 +458,7 @@ export function BillFormClient({
           <div className="grid grid-cols-2 gap-2">
             {([
               { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
-              { value: "advance", description: "โอนเก็บ/เงินสำรอง ไม่นับรวมยอดใช้จริง" },
+              { value: "advance", description: "โอนคืน/จ่ายให้กัน ไม่นับรวมเป็นค่าใช้จ่าย" },
             ] as const).map((option) => {
               const active = entryType === option.value;
               return (
@@ -506,7 +506,7 @@ export function BillFormClient({
           />
           {entryType === "advance" && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-              รายการประเภทเงินสำรองจะถูกเก็บไว้ในบิล แต่ไม่ถูกรวมในยอดค่าใช้จ่ายและสรุปโอนเงิน
+              การจ่ายเงินไม่ถูกรวมในยอดค่าใช้จ่าย แต่นำไปหักลบยอดที่ต้องโอน
             </p>
           )}
         </div>

@@ -1,3 +1,4 @@
+/** "advance" is stored for compatibility; it is shown as a payment (การจ่ายเงิน) between members. */
 export type BillEntryType = "expense" | "advance";
 
 /** Exact amount a member pays for a bill (the rest is split among the others), keyed by member id. */
@@ -67,5 +68,5 @@ export function isExpenseEntry(entryType: BillEntryType): boolean {
 }
 
 export function getBillEntryLabel(entryType: BillEntryType): string {
-  return entryType === "advance" ? "เงินสำรอง" : "ค่าใช้จ่าย";
+  return entryType === "advance" ? "การจ่ายเงิน" : "ค่าใช้จ่าย";
 }

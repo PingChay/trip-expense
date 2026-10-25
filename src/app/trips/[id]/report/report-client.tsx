@@ -142,7 +142,7 @@ function SignLegend() {
       <span><b className="font-semibold text-positive">+</b> ได้คืน</span>
       <span><b className="font-semibold text-negative">−</b> ต้องจ่าย</span>
       <span className="flex items-center gap-1">
-        <span className="size-2.5 rounded-sm bg-amber-200" /> เงินสำรอง
+        <span className="size-2.5 rounded-sm bg-amber-200" /> การจ่ายเงิน
       </span>
     </p>
   );
@@ -202,8 +202,8 @@ function LedgerSection({
 const LEDGER_LABELS = {
   paid: "จ่ายไป",
   owed: "ส่วนของตัวเอง",
-  advancePaid: "ให้เงินสำรอง",
-  advanceOwed: "ถือเงินสำรอง",
+  advancePaid: "จ่ายให้คนอื่น",
+  advanceOwed: "ได้รับจากคนอื่น",
 };
 
 function SummaryCard({
@@ -234,7 +234,7 @@ function SummaryCard({
           {advanceCurrencies.length > 0 && (
             <LedgerSection
               advance
-              title="เงินสำรอง"
+              title="การจ่ายเงิน"
               items={advanceCurrencies}
               paidLabel={labels.advancePaid}
               owedLabel={labels.advanceOwed}
