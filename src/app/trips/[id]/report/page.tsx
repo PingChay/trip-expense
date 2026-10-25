@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { computeBalances, computeSettlementMultiCurrency } from "@/lib/balance";
+import { billShares, computeBalances, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
 type SummaryCurrency = {
@@ -36,6 +36,7 @@ export default async function ReportPage({
       ...bill,
       amount: Number(bill.amount),
       entryType: parsedNote.entryType,
+      personalAmounts: parsedNote.personalAmounts,
       note: parsedNote.note,
     };
   });
@@ -56,10 +57,10 @@ export default async function ReportPage({
       .map((currency) => {
         const currBills = sourceBills.filter((bill) => bill.currency === currency);
         const paid = currBills.filter((bill) => bill.payer_id === memberId).reduce((sum, bill) => sum + bill.amount, 0);
-        const owed = currBills.reduce((sum, bill) => {
-          if (!(bill.participants as string[]).includes(memberId)) return sum;
-          return sum + bill.amount / bill.participants.length;
-        }, 0);
+        const owed = currBills.reduce(
+          (sum, bill) => sum + (billShares(bill.amount, bill.participants, bill.personalAmounts)[memberId] ?? 0),
+          0
+        );
         return { currency, paid, owed, balance: paid - owed };
       })
       .filter((entry) => entry.paid > 0.005 || entry.owed > 0.005);
@@ -74,8 +75,8 @@ export default async function ReportPage({
           .filter((bill) => memberIds.includes(bill.payer_id))
           .reduce((sum, bill) => sum + bill.amount, 0);
         const owed = currBills.reduce((sum, bill) => {
-          const participantsInGroup = (bill.participants as string[]).filter((pid) => memberIds.includes(pid)).length;
-          return sum + (bill.amount / bill.participants.length) * participantsInGroup;
+          const shares = billShares(bill.amount, bill.participants, bill.personalAmounts);
+          return sum + memberIds.reduce((groupSum, pid) => groupSum + (shares[pid] ?? 0), 0);
         }, 0);
         return { currency, paid, owed, balance: paid - owed };
       })
@@ -84,7 +85,9 @@ export default async function ReportPage({
 
   const memberMap = Object.fromEntries((members ?? []).map((m) => [m.id, m.name]));
 
-  const billBreakdown = normalizedBills.map((b) => ({
+  const billBreakdown = normalizedBills.map((b) => {
+    const shares = billShares(b.amount, b.participants, b.personalAmounts);
+    return {
     id: b.id,
     title: b.title,
     amount: b.amount,
@@ -94,9 +97,11 @@ export default async function ReportPage({
     date: b.date ?? null,
     shares: (b.participants as string[]).map((pid) => ({
       name: memberMap[pid] ?? "-",
-      share: b.amount / b.participants.length,
+      share: shares[pid] ?? 0,
+      personal: b.participants.includes(pid) ? (b.personalAmounts[pid] ?? 0) : 0,
     })),
-  }));
+    };
+  });
 
   // compute per-person summary grouped by currency
   const settlementCurrencies = [...new Set(normalizedBills.map((b) => b.currency as string))];

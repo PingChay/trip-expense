@@ -16,7 +16,7 @@ type BillBreakdown = {
   entryType: BillEntryType;
   payerName: string;
   date: string | null;
-  shares: { name: string; share: number }[];
+  shares: { name: string; share: number; personal: number }[];
 };
 
 type PersonSummary = {
@@ -127,7 +127,7 @@ function SummaryRows({
             <div key={row.label} className="flex justify-between text-slate-500">
               <span>{row.label}</span>
               <span className="tabular-nums">
-                {row.value.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                {row.value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
               </span>
             </div>
           ))}
@@ -140,7 +140,7 @@ function SummaryRows({
                 }`}
               >
                 {rounded > 0 ? "+" : ""}
-                {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
               </span>
             </div>
           )}
@@ -173,7 +173,7 @@ function SummaryTotals({
             }`}
           >
             {rounded > 0 ? "+" : ""}
-            {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+            {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
           </span>
         </div>
       </div>
@@ -277,7 +277,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                         )}
                       </div>
                       <p className="font-semibold text-slate-900 tabular-nums shrink-0">
-                        {bill.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{" "}
+                        {bill.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
                         {bill.currency}
                       </p>
                     </div>
@@ -297,8 +297,11 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                             </span>
                           </td>
                           <td className="px-4 py-2 text-right text-slate-600 tabular-nums">
-                            {s.share.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{" "}
+                            {s.share.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
                             {bill.currency}
+                            {s.personal > 0 && (
+                              <span className="block text-[11px] text-slate-400">ราคาเฉพาะ</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -451,7 +454,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                           toIsGroup={s.toIsGroup}
                         />
                         <p className="shrink-0 font-bold tabular-nums text-slate-900">
-                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
+                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
                         </p>
                       </div>
                     ))}
@@ -470,7 +473,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                       >
                         <TransferParties from={s.fromName} to={s.toName} />
                         <p className="shrink-0 font-bold tabular-nums text-slate-900">
-                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {s.currency}
+                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
                         </p>
                       </div>
                     ))}

@@ -15,7 +15,7 @@ export async function createBill(tripId: string, data: BillInput) {
     payer_id: data.payerId,
     participants: data.participants,
     date: data.date || new Date().toISOString().split("T")[0],
-    note: serializeBillNote(data.note, data.entryType),
+    note: serializeBillNote(data.note, data.entryType, data.personalAmounts),
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/trips/${tripId}`);

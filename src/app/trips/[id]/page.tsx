@@ -2,28 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
+import { computeBalances } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
 import { ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
-
-type Member = { id: string; name: string };
-type Bill = { id: string; amount: number; payer_id: string; participants: string[]; currency: string; note?: string | null };
-
-function computeBalances(members: Member[], bills: Bill[]) {
-  const balance: Record<string, number> = {};
-  for (const m of members) balance[m.id] = 0;
-  for (const bill of bills) {
-    const share = bill.amount / bill.participants.length;
-    balance[bill.payer_id] = (balance[bill.payer_id] ?? 0) + bill.amount;
-    for (const pid of bill.participants) {
-      balance[pid] = (balance[pid] ?? 0) - share;
-    }
-  }
-  return balance;
-}
 
 export default async function TripDashboard({
   params,
@@ -40,11 +25,10 @@ export default async function TripDashboard({
 
   if (!trip) notFound();
 
-  const normalizedBills = (bills ?? []).map((bill) => ({
-    ...bill,
-    amount: Number(bill.amount),
-    entryType: parseBillNote(bill.note).entryType,
-  }));
+  const normalizedBills = (bills ?? []).map((bill) => {
+    const { entryType, personalAmounts } = parseBillNote(bill.note);
+    return { ...bill, amount: Number(bill.amount), entryType, personalAmounts };
+  });
   const expenseBills = normalizedBills.filter((bill) => isExpenseEntry(bill.entryType));
 
   // group totals and balances by currency
@@ -163,7 +147,7 @@ export default async function TripDashboard({
                             }`}
                           >
                             {bal > 0 ? "+" : ""}
-                            {bal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{" "}
+                            {bal.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
                             <span className="text-xs font-medium opacity-70">{currency}</span>
                           </p>
                         ))

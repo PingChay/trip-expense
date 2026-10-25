@@ -35,6 +35,7 @@ export default async function EditBillPage({
     date: bill.date ?? new Date().toISOString().split("T")[0],
     note: parsedNote.note,
     entryType: parsedNote.entryType,
+    personalAmounts: parsedNote.personalAmounts,
   };
 
   const boundUpdate = updateBill.bind(null, billId, id);

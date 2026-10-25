@@ -1,5 +1,32 @@
+import type { PersonalAmounts } from "@/lib/bill-entry";
+
 export type Member = { id: string; name: string };
-export type Bill = { id: string; amount: number; payer_id: string; participants: string[]; currency?: string };
+export type Bill = {
+  id: string;
+  amount: number;
+  payer_id: string;
+  participants: string[];
+  currency?: string;
+  personalAmounts?: PersonalAmounts;
+};
+
+/**
+ * What each participant owes for one bill. A participant with a personal amount
+ * owes exactly that; everyone else splits what is left evenly.
+ */
+export function billShares(
+  amount: number,
+  participants: string[],
+  personalAmounts: PersonalAmounts = {}
+): Record<string, number> {
+  const fixed = participants.filter((pid) => (personalAmounts[pid] ?? 0) > 0);
+  const others = participants.filter((pid) => !fixed.includes(pid));
+  const fixedTotal = fixed.reduce((sum, pid) => sum + personalAmounts[pid], 0);
+  const evenShare = others.length > 0 ? (amount - fixedTotal) / others.length : 0;
+  return Object.fromEntries(
+    participants.map((pid) => [pid, fixed.includes(pid) ? personalAmounts[pid] : evenShare])
+  );
+}
 export type Settlement = {
   fromId: string;
   fromName: string;
@@ -14,9 +41,8 @@ export function computeBalances(members: Member[], bills: Bill[]): Record<string
   for (const m of members) balance[m.id] = 0;
   for (const bill of bills) {
     const amt = Number(bill.amount);
-    const share = amt / bill.participants.length;
     balance[bill.payer_id] = (balance[bill.payer_id] ?? 0) + amt;
-    for (const pid of bill.participants) {
+    for (const [pid, share] of Object.entries(billShares(amt, bill.participants, bill.personalAmounts))) {
       balance[pid] = (balance[pid] ?? 0) - share;
     }
   }

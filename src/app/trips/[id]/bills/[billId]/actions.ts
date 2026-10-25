@@ -16,7 +16,7 @@ export async function updateBill(billId: string, tripId: string, data: BillInput
       payer_id: data.payerId,
       participants: data.participants,
       date: data.date,
-      note: serializeBillNote(data.note, data.entryType),
+      note: serializeBillNote(data.note, data.entryType, data.personalAmounts),
     })
     .eq("id", billId);
   if (error) throw new Error(error.message);

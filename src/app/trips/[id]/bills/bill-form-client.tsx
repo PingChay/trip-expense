@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
-import { getBillEntryLabel, type BillEntryType } from "@/lib/bill-entry";
+import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
+import { billShares } from "@/lib/balance";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
 import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2, Users } from "lucide-react";
@@ -52,16 +53,47 @@ export function BillFormClient({
   const [date, setDate] = useState(initialData?.date ?? today);
   const [note, setNote] = useState(initialData?.note ?? "");
   const [entryType, setEntryType] = useState<BillEntryType>(initialData?.entryType ?? "expense");
+  const [usePersonal, setUsePersonal] = useState(
+    Object.keys(initialData?.personalAmounts ?? {}).length > 0
+  );
+  const [personalInputs, setPersonalInputs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(initialData?.personalAmounts ?? {}).map(([id, value]) => [id, value.toString()])
+    )
+  );
   const [errors, setErrors] = useState<{
     title?: string;
     amount?: string;
     participants?: string;
     payer?: string;
+    personal?: string;
   }>({});
 
   const amountNum = parseFloat(amount) || 0;
   const selectedCount = participants.length;
-  const perPerson = selectedCount > 0 ? amountNum / selectedCount : 0;
+  // only ticked participants carry a personal amount; unticking someone drops theirs
+  const personalAmounts: PersonalAmounts = usePersonal
+    ? Object.fromEntries(
+        participants
+          .map((id) => [id, parseFloat(personalInputs[id] ?? "") || 0] as const)
+          .filter(([, value]) => value > 0)
+      )
+    : {};
+  const personalTotal = Object.values(personalAmounts).reduce((sum, value) => sum + value, 0);
+  const remainder = amountNum - personalTotal;
+  const evenCount = selectedCount - Object.keys(personalAmounts).length;
+  const perPerson = evenCount > 0 ? remainder / evenCount : 0;
+  const shares = billShares(amountNum, participants, personalAmounts);
+  // over the total, or everyone has a fixed amount and they don't add up to the total
+  const personalMismatch =
+    amountNum > 0 &&
+    personalTotal > 0 &&
+    (remainder < -0.005 || (evenCount === 0 && Math.abs(remainder) > 0.005));
+  const formatMoney = (value: number) => value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const personalMismatchMessage =
+    remainder < 0
+      ? `ราคาเฉพาะคนรวม ${formatMoney(personalTotal)} ${currency} เกินยอดบิล ${formatMoney(amountNum)} ${currency}`
+      : `ทุกคนมีราคาเฉพาะแล้ว แต่รวมได้ ${formatMoney(personalTotal)} ${currency} ยังขาด ${formatMoney(remainder)} ${currency} จากยอดบิล`;
 
   function toggleParticipant(id: string) {
     setParticipants((prev) =>
@@ -77,12 +109,13 @@ export function BillFormClient({
     if (!amountNum || amountNum <= 0) newErrors.amount = "จำนวนเงินต้องมากกว่า 0";
     if (participants.length === 0) newErrors.participants = "ต้องเลือกผู้ร่วมหารอย่างน้อย 1 คน";
     if (!payerId) newErrors.payer = "กรุณาเลือกผู้จ่าย";
+    if (personalMismatch) newErrors.personal = personalMismatchMessage;
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     startTransition(async () => {
-      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType });
+      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType, personalAmounts });
     });
   }
 
@@ -252,6 +285,32 @@ export function BillFormClient({
             </div>
           </div>
 
+          <button
+            type="button"
+            role="switch"
+            aria-checked={usePersonal}
+            onClick={() => {
+              setUsePersonal((prev) => !prev);
+              setErrors((er) => ({ ...er, personal: undefined }));
+            }}
+            className="flex w-full items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-left transition-colors hover:border-slate-300"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-slate-900">ระบุราคาเฉพาะคน</span>
+              <span className="mt-0.5 block text-xs leading-snug text-slate-500">
+                ใส่ยอดที่บางคนจ่ายเองตามจริง คนที่เหลือหารยอดที่เหลือเท่ากัน
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${usePersonal ? "bg-slate-900" : "bg-slate-300"}`}
+            >
+              <span
+                className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out ${usePersonal ? "translate-x-[18px]" : "translate-x-0.5"}`}
+              />
+            </span>
+          </button>
+
           {/* Group members for display */}
           {(() => {
             const UNGROUPED = "__ungrouped__";
@@ -296,24 +355,48 @@ export function BillFormClient({
                     {grouped[groupKey].map((m) => {
                       const checked = participants.includes(m.id);
                       return (
-                        <label
-                          key={m.id}
-                          className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleParticipant(m.id)}
-                            className="size-[18px] shrink-0 rounded"
-                          />
-                          <MemberAvatar name={m.name} size="sm" />
-                          <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
-                          {amountNum > 0 && checked && (
-                            <span className="text-xs tabular-nums text-slate-500">
-                              {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
-                            </span>
+                        <div key={m.id} className="transition-colors hover:bg-slate-50">
+                          <label className="flex cursor-pointer items-center gap-3 px-4 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleParticipant(m.id)}
+                              className="size-[18px] shrink-0 rounded"
+                            />
+                            <MemberAvatar name={m.name} size="sm" />
+                            <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
+                            {amountNum > 0 && checked && (
+                              <span
+                                className={`text-xs tabular-nums ${personalAmounts[m.id] ? "font-semibold text-slate-900" : "text-slate-500"}`}
+                              >
+                                {formatMoney(shares[m.id] ?? 0)} {currency}
+                              </span>
+                            )}
+                          </label>
+                          {usePersonal && checked && (
+                            <div className="-mt-1 flex items-center gap-2 pb-2.5 pl-[4.25rem] pr-4">
+                              <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">ราคาเฉพาะ</span>
+                              <div className="flex h-9 flex-1 items-center rounded-lg border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0"
+                                  aria-label={`ราคาเฉพาะของ ${m.name}`}
+                                  value={personalInputs[m.id] ?? ""}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setPersonalInputs((prev) => ({ ...prev, [m.id]: value }));
+                                    setErrors((er) => ({ ...er, personal: undefined }));
+                                  }}
+                                  className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm tabular-nums outline-none placeholder:text-slate-300"
+                                />
+                                <span className="pr-3 text-xs text-slate-400">{currency}</span>
+                              </div>
+                            </div>
                           )}
-                        </label>
+                        </div>
                       );
                     })}
                   </div>
@@ -322,16 +405,31 @@ export function BillFormClient({
             );
           })()}
 
-          {amountNum > 0 && selectedCount > 0 && (
+          {amountNum > 0 && selectedCount > 0 && !personalMismatch && (
             <div className="flex items-center gap-2 rounded-xl bg-slate-900/[0.05] px-4 py-2.5 text-sm text-slate-700">
               <Divide className="h-4 w-4 shrink-0 text-slate-400" />
               <span>
-                <span className="font-semibold tabular-nums text-slate-900">
-                  {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency} / คน
-                </span>
-                &nbsp;·&nbsp;{selectedCount} คน
+                {personalTotal > 0 && (
+                  <span className="block text-xs text-slate-500">
+                    ราคาเฉพาะคน {formatMoney(personalTotal)}
+                    {evenCount > 0 && ` · ที่เหลือ ${formatMoney(remainder)} หาร ${evenCount} คน`}
+                  </span>
+                )}
+                {evenCount > 0 ? (
+                  <>
+                    <span className="font-semibold tabular-nums text-slate-900">
+                      {formatMoney(perPerson)} {currency} / คน
+                    </span>
+                    &nbsp;·&nbsp;{evenCount} คน
+                  </>
+                ) : (
+                  <span className="font-semibold text-slate-900">ทุกคนจ่ายตามราคาเฉพาะ</span>
+                )}
               </span>
             </div>
+          )}
+          {(personalMismatch || errors.personal) && (
+            <p role="alert" className={fieldError}>{personalMismatch ? personalMismatchMessage : errors.personal}</p>
           )}
           {errors.participants && (
             <p className={fieldError}>{errors.participants}</p>
