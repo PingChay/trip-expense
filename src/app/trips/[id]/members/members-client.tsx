@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
@@ -18,12 +18,15 @@ interface Props {
 }
 
 const UNGROUPED = "__ungrouped__";
+// list max-h-44 (176px) + margin and border
+const MENU_HEIGHT = 190;
 
 interface GroupInputProps extends Omit<React.ComponentProps<typeof Input>, "onChange" | "onSelect"> {
   open: boolean;
   options: string[];
   onChange: (value: string) => void;
   onToggle: () => void;
+  onClose: () => void;
   onOptionSelect: (value: string) => void;
 }
 
@@ -33,12 +36,45 @@ function GroupInput({
   options,
   onChange,
   onToggle,
+  onClose,
   onOptionSelect,
   value,
   ...props
 }: GroupInputProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
+
+  function handleToggle() {
+    if (!open && wrapperRef.current) {
+      // the fixed bottom tab bar covers the viewport's lower edge
+      const floor = document.querySelector("nav")?.getBoundingClientRect().top ?? window.innerHeight;
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setDropUp(floor - rect.bottom < MENU_HEIGHT && rect.top > floor - rect.bottom);
+    }
+    onToggle();
+  }
+
+  // Taps outside close the menu too: Safari doesn't focus buttons on click, so blur alone misses them.
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!wrapperRef.current?.contains(event.target as Node)) onClose();
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open, onClose]);
+
   return (
-    <div className="relative flex-1">
+    <div
+      ref={wrapperRef}
+      className="relative flex-1"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onClose();
+      }}
+      onKeyDown={(event) => {
+        if (open && event.key === "Escape") onClose();
+      }}
+    >
       <Input
         {...props}
         value={value}
@@ -47,7 +83,7 @@ function GroupInput({
       />
       <button
         type="button"
-        onClick={onToggle}
+        onClick={handleToggle}
         aria-label="เลือกกลุ่ม"
         aria-expanded={open}
         className="absolute inset-y-1 right-1 flex w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
@@ -55,7 +91,7 @@ function GroupInput({
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.3)]">
+        <div className={`absolute left-0 right-0 z-30 overflow-hidden ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}  rounded-xl border border-slate-200 bg-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.3)]`}>
           {options.length > 0 ? (
             <ul className="max-h-44 overflow-y-auto py-1">
               {options.map((option) => (
@@ -91,6 +127,8 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
   const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const closeAddGroup = useCallback(() => setIsAddGroupOpen(false), []);
+  const closeEditGroup = useCallback(() => setIsEditGroupOpen(false), []);
   // optimistic temp id → insert that resolves to the real row id
   const pendingIds = useRef(new Map<string, Promise<string>>());
   const tempSeq = useRef(0);
@@ -221,6 +259,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                           open={isEditGroupOpen}
                           options={existingGroups.filter((group) => group !== editGroup)}
                           onToggle={() => setIsEditGroupOpen((prev) => !prev)}
+                          onClose={closeEditGroup}
                           onOptionSelect={(group) => {
                             setEditGroup(group);
                             setIsEditGroupOpen(false);
@@ -313,6 +352,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
               open={isAddGroupOpen}
               options={existingGroups.filter((group) => group !== newGroup)}
               onToggle={() => setIsAddGroupOpen((prev) => !prev)}
+              onClose={closeAddGroup}
               onOptionSelect={(group) => {
                 setNewGroup(group);
                 setIsAddGroupOpen(false);
