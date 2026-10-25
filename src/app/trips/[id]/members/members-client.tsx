@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
@@ -91,6 +91,13 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
   const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  // optimistic temp id → insert that resolves to the real row id
+  const pendingIds = useRef(new Map<string, Promise<string>>());
+  const tempSeq = useRef(0);
+
+  async function resolveId(id: string) {
+    return (await pendingIds.current.get(id)) ?? id;
+  }
 
   // collect existing group names for datalist suggestions
   const existingGroups = [...new Set(members.map((m) => m.group_name).filter(Boolean))] as string[];
@@ -103,14 +110,25 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
       return;
     }
     const group = newGroup.trim() || null;
-    const tempId = "temp-" + Date.now();
+    const tempId = `temp-${++tempSeq.current}`;
     setMembers((prev) => [...prev, { id: tempId, name, active: true, group_name: group }]);
     setNewName("");
     setNewGroup("");
     setIsAddGroupOpen(false);
     setError(null);
+    const insert = addMember(tripId, name, group ?? undefined);
+    pendingIds.current.set(tempId, insert);
     startTransition(async () => {
-      await addMember(tripId, name, group ?? undefined);
+      try {
+        const realId = await insert;
+        setMembers((prev) => prev.map((m) => (m.id === tempId ? { ...m, id: realId } : m)));
+        setEditingId((prev) => (prev === tempId ? realId : prev));
+      } catch {
+        setMembers((prev) => prev.filter((m) => m.id !== tempId));
+        setError(`เพิ่ม "${name}" ไม่สำเร็จ ลองใหม่อีกครั้ง`);
+      } finally {
+        pendingIds.current.delete(tempId);
+      }
     });
   }
 
@@ -134,7 +152,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     setIsEditGroupOpen(false);
     setError(null);
     startTransition(async () => {
-      await updateMember(id, tripId, name, group ?? undefined);
+      await updateMember(await resolveId(id), tripId, name, group ?? undefined);
     });
   }
 
@@ -145,7 +163,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     }
     setMembers((prev) => prev.filter((m) => m.id !== id));
     startTransition(async () => {
-      await deleteMember(id, tripId);
+      await deleteMember(await resolveId(id), tripId);
     });
   }
 
