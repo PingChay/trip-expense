@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
-import { Plus, X, Pencil, Check, Users, ChevronDown } from "lucide-react";
+import { Plus, X, Pencil, Check, Users, ChevronDown, QrCode } from "lucide-react";
+import { formatPromptPay, isValidPromptPay, normalizePromptPay } from "@/lib/promptpay";
 import { addMember, updateMember, deleteMember } from "./actions";
 
-type Member = { id: string; name: string; active: boolean; group_name?: string | null };
+type Member = { id: string; name: string; active: boolean; group_name?: string | null; promptpay?: string | null };
 
 interface Props {
   tripId: string;
   initialMembers: Member[];
   billCounts: Record<string, number>;
+  /** false until the members.promptpay column exists */
+  promptPayEnabled: boolean;
 }
 
 const UNGROUPED = "__ungrouped__";
@@ -116,7 +119,7 @@ function GroupInput({
   );
 }
 
-export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
+export function MembersClient({ tripId, initialMembers, billCounts, promptPayEnabled }: Props) {
   const [members, setMembers] = useState(initialMembers);
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
@@ -124,6 +127,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editGroup, setEditGroup] = useState("");
+  const [editPromptPay, setEditPromptPay] = useState("");
   const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -174,6 +178,7 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     setEditingId(m.id);
     setEditName(m.name);
     setEditGroup(m.group_name ?? "");
+    setEditPromptPay(m.promptpay ?? "");
     setIsEditGroupOpen(false);
   }
 
@@ -184,13 +189,28 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
       setError(`"${name}" มีแล้ว`);
       return;
     }
+    const promptpay = normalizePromptPay(editPromptPay) || null;
+    if (promptPayEnabled && promptpay && !isValidPromptPay(promptpay)) {
+      setError("พร้อมเพย์ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลขบัตร 13 หลัก");
+      return;
+    }
     const group = editGroup.trim() || null;
-    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, name, group_name: group } : m)));
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, name, group_name: group, ...(promptPayEnabled ? { promptpay } : {}) } : m
+      )
+    );
     setEditingId(null);
     setIsEditGroupOpen(false);
     setError(null);
     startTransition(async () => {
-      await updateMember(await resolveId(id), tripId, name, group ?? undefined);
+      await updateMember(
+        await resolveId(id),
+        tripId,
+        name,
+        group ?? undefined,
+        promptPayEnabled ? promptpay : undefined
+      );
     });
   }
 
@@ -251,6 +271,22 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                         }}
                         className="h-10 rounded-lg bg-white"
                       />
+                      {promptPayEnabled && (
+                        <div className="relative">
+                          <QrCode className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <Input
+                            inputMode="numeric"
+                            placeholder="พร้อมเพย์ เบอร์โทร/เลขบัตร (ไม่บังคับ)"
+                            aria-label="พร้อมเพย์"
+                            value={editPromptPay}
+                            onChange={(e) => {
+                              setEditPromptPay(e.target.value);
+                              setError(null);
+                            }}
+                            className="h-10 rounded-lg bg-white pl-9 text-sm tabular-nums"
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <GroupInput
                           placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
@@ -289,6 +325,12 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                       <MemberAvatar name={m.name} />
                       <div className="ml-1 min-w-0 flex-1">
                         <p className="truncate text-sm text-slate-900">{m.name}</p>
+                        {m.promptpay && (
+                          <p className="flex items-center gap-1 text-xs tabular-nums text-slate-500">
+                            <QrCode className="h-3 w-3" />
+                            {formatPromptPay(m.promptpay)}
+                          </p>
+                        )}
                       </div>
                       {(billCounts[m.id] ?? 0) > 0 && (
                         <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">

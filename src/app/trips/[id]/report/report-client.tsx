@@ -6,6 +6,8 @@ import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
 import { TransferParties } from "@/components/transfer-parties";
+import { SettlementQr } from "@/components/promptpay-qr";
+import type { PromptPayTarget } from "@/lib/members";
 import { getBillEntryLabel, type BillEntryType } from "@/lib/bill-entry";
 import type { Settlement } from "@/lib/balance";
 
@@ -68,6 +70,7 @@ interface Props {
   groupSummaries: GroupSummary[];
   settlements: Settlement[];
   groupSettlements: GroupSettlement[];
+  promptPayTargets: Record<string, PromptPayTarget>;
 }
 
 type Tab = "breakdown" | "person" | "group" | "settlement";
@@ -243,7 +246,15 @@ function SummaryCard({
   );
 }
 
-export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries, settlements, groupSettlements }: Props) {
+export function ReportClient({
+  tripId,
+  billBreakdown,
+  perPerson,
+  groupSummaries,
+  settlements,
+  groupSettlements,
+  promptPayTargets,
+}: Props) {
   const hasGroups = groupSummaries.length > 0;
   const [tab, setTab] = useState<Tab>("settlement");
 
@@ -408,9 +419,12 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                           fromIsGroup={s.fromIsGroup}
                           toIsGroup={s.toIsGroup}
                         />
-                        <p className="shrink-0 font-bold tabular-nums text-slate-900">
-                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
-                        </p>
+                        <div className="flex shrink-0 items-center gap-2.5">
+                          <p className="font-bold tabular-nums text-slate-900">
+                            {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
+                          </p>
+                          <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -427,9 +441,12 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                         className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]"
                       >
                         <TransferParties from={s.fromName} to={s.toName} />
-                        <p className="shrink-0 font-bold tabular-nums text-slate-900">
-                          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
-                        </p>
+                        <div className="flex shrink-0 items-center gap-2.5">
+                          <p className="font-bold tabular-nums text-slate-900">
+                            {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
+                          </p>
+                          <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                        </div>
                       </div>
                     ))}
                   </div>

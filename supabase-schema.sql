@@ -13,9 +13,14 @@ create table members (
   trip_id     text not null references trips(id) on delete cascade,
   name        text not null,
   active      boolean default true,
+  group_name  text,
+  promptpay   text,                       -- เบอร์โทร / เลขบัตร / e-wallet สำหรับสร้าง QR รับเงิน
   created_at  timestamptz default now(),
   unique (trip_id, name)
 );
+
+-- Migration สำหรับฐานข้อมูลที่สร้างไว้แล้ว:
+-- alter table members add column if not exists promptpay text;
 
 create table bills (
   id           text primary key default gen_random_uuid()::text,

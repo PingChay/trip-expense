@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
+import { fetchMembersWithPromptPay, promptPayByLabel } from "@/lib/members";
 import { computeBalances, computeGroupSettlements } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
@@ -9,6 +10,7 @@ import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
 import { TransferParties } from "@/components/transfer-parties";
+import { SettlementQr } from "@/components/promptpay-qr";
 import { ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
 
 export default async function TripDashboard({
@@ -18,9 +20,9 @@ export default async function TripDashboard({
 }) {
   const { id } = await params;
 
-  const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
+  const [{ data: trip }, members, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
-    supabase.from("members").select("id, name, group_name").eq("trip_id", id).order("created_at"),
+    fetchMembersWithPromptPay<{ id: string; name: string; group_name: string | null }>(id, "id, name, group_name"),
     supabase.from("bills").select("id, amount, payer_id, participants, currency, note").eq("trip_id", id),
   ]);
 
@@ -56,6 +58,7 @@ export default async function TripDashboard({
 
   const settlements = computeGroupSettlements(members ?? [], normalizedBills);
   const SETTLEMENT_PREVIEW = 3;
+  const promptPayTargets = promptPayByLabel(members ?? []);
   const memberCount = (members ?? []).length;
   const billCount = (bills ?? []).length;
 
@@ -128,10 +131,13 @@ export default async function TripDashboard({
               {settlements.slice(0, SETTLEMENT_PREVIEW).map((s) => (
                 <li key={`${s.fromId}-${s.toId}-${s.currency}`} className="flex items-center justify-between gap-3 px-4 py-3">
                   <TransferParties from={s.fromName} to={s.toName} fromIsGroup={s.fromIsGroup} toIsGroup={s.toIsGroup} />
-                  <p className="shrink-0 font-semibold tabular-nums text-slate-900">
-                    {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                    <span className="text-xs font-medium text-slate-400">{s.currency}</span>
-                  </p>
+                  <div className="flex shrink-0 items-center gap-2.5">
+                    <p className="font-semibold tabular-nums text-slate-900">
+                      {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                      <span className="text-xs font-medium text-slate-400">{s.currency}</span>
+                    </p>
+                    <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                  </div>
                 </li>
               ))}
             </ul>

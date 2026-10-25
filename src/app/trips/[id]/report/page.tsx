@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
+import { fetchMembersWithPromptPay, promptPayByLabel } from "@/lib/members";
 import { billShares, computeGroupSettlements, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
@@ -18,9 +19,9 @@ export default async function ReportPage({
 }) {
   const { id } = await params;
 
-  const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
+  const [{ data: trip }, members, { data: bills }] = await Promise.all([
     supabase.from("trips").select("name").eq("id", id).maybeSingle(),
-    supabase.from("members").select("id, name, group_name").eq("trip_id", id).order("created_at"),
+    fetchMembersWithPromptPay<{ id: string; name: string; group_name: string | null }>(id, "id, name, group_name"),
     supabase
       .from("bills")
       .select("*")
@@ -147,6 +148,7 @@ export default async function ReportPage({
       groupSummaries={groupSummaries}
       settlements={settlements}
       groupSettlements={groupSettlements}
+      promptPayTargets={promptPayByLabel(members ?? [])}
     />
   );
 }

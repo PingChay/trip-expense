@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { fetchMembersWithPromptPay } from "@/lib/members";
 import { MembersClient } from "./members-client";
 
 export default async function MembersPage({
@@ -9,9 +10,12 @@ export default async function MembersPage({
 }) {
   const { id } = await params;
 
-  const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
+  const [{ data: trip }, members, { data: bills }] = await Promise.all([
     supabase.from("trips").select("name").eq("id", id).maybeSingle(),
-    supabase.from("members").select("id, name, active, group_name").eq("trip_id", id).order("created_at"),
+    fetchMembersWithPromptPay<{ id: string; name: string; active: boolean; group_name: string | null }>(
+      id,
+      "id, name, active, group_name"
+    ),
     supabase.from("bills").select("payer_id, participants").eq("trip_id", id),
   ]);
 
@@ -31,6 +35,7 @@ export default async function MembersPage({
       tripId={id}
       initialMembers={members ?? []}
       billCounts={billCounts}
+      promptPayEnabled={(members ?? []).some((m) => "promptpay" in m)}
     />
   );
 }
