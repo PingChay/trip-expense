@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
+import { PageHeader } from "@/components/page-header";
+import { MemberAvatar } from "@/components/member-avatar";
 import { Plus, X, Pencil, Check, Users, ChevronDown } from "lucide-react";
 import { addMember, updateMember, deleteMember } from "./actions";
 
@@ -49,12 +50,12 @@ function GroupInput({
         onClick={onToggle}
         aria-label="เลือกกลุ่ม"
         aria-expanded={open}
-        className="absolute inset-y-1 right-1 flex w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
+        className="absolute inset-y-1 right-1 flex w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
       >
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border bg-white shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.3)]">
           {options.length > 0 ? (
             <ul className="max-h-44 overflow-y-auto py-1">
               {options.map((option) => (
@@ -62,8 +63,9 @@ function GroupInput({
                   <button
                     type="button"
                     onClick={() => onOptionSelect(option)}
-                    className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
                   >
+                    <Users className="h-3.5 w-3.5 text-slate-400" />
                     {option}
                   </button>
                 </li>
@@ -160,37 +162,29 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
     ...Object.keys(grouped).filter((k) => k !== UNGROUPED).sort(),
   ];
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3">
-        <div className="text-center">
-          <h1 className="font-semibold text-slate-900">
-            สมาชิก
-            {members.length > 0 && (
-              <span className="ml-2 text-sm text-slate-400 font-normal">{members.length} คน</span>
-            )}
-          </h1>
-        </div>
-      </header>
+  const rowButton =
+    "flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700";
 
-      <div className="max-w-sm mx-auto px-4 py-6 pb-28 space-y-4">
+  return (
+    <div className="min-h-screen">
+      <PageHeader title="สมาชิก" subtitle={members.length > 0 ? `${members.length} คน` : undefined} />
+
+      <div className="mx-auto max-w-sm space-y-5 px-4 pb-32 pt-5">
         {/* Grouped member list */}
         {groupKeys.map((groupKey) => (
-          <div key={groupKey}>
+          <section key={groupKey} className="space-y-2">
             {groupKey !== UNGROUPED && (
-              <div className="flex items-center gap-2 px-1 mb-1">
-                <Users className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  {groupKey}
-                </span>
-                <span className="text-xs text-slate-400">· {grouped[groupKey].length} คน</span>
-              </div>
+              <h2 className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-700">
+                <Users className="h-4 w-4 text-slate-400" />
+                {groupKey}
+                <span className="font-normal text-slate-400">· {grouped[groupKey].length} คน</span>
+              </h2>
             )}
-            <ul className="bg-white rounded-xl border divide-y">
+            <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
               {grouped[groupKey].map((m) => (
-                <li key={m.id} className="px-3 py-3">
+                <li key={m.id} className="px-4 py-2.5">
                   {editingId === m.id ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 py-1">
                       <Input
                         autoFocus
                         placeholder="ชื่อ"
@@ -199,9 +193,9 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                         onKeyDown={(e) => {
                           if (e.key === "Escape") setEditingId(null);
                         }}
-                        className="h-8"
+                        className="h-10 rounded-lg bg-white"
                       />
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-1">
                         <GroupInput
                           placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
                           value={editGroup}
@@ -213,19 +207,21 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                             setEditGroup(group);
                             setIsEditGroupOpen(false);
                           }}
-                          className="h-8 text-xs"
+                          className="h-10 rounded-lg bg-white text-sm"
                         />
                         <button
                           type="button"
                           onClick={() => handleSaveEdit(m.id)}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded shrink-0"
+                          aria-label="บันทึก"
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white transition-colors hover:bg-slate-800"
                         >
                           <Check className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
-                          className="p-1.5 text-slate-400 hover:bg-slate-100 rounded shrink-0"
+                          aria-label="ยกเลิก"
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -233,18 +229,20 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-800">{m.name}</p>
+                      <MemberAvatar name={m.name} />
+                      <div className="ml-1 min-w-0 flex-1">
+                        <p className="truncate text-sm text-slate-900">{m.name}</p>
                       </div>
                       {(billCounts[m.id] ?? 0) > 0 && (
-                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
                           {billCounts[m.id]} บิล
                         </span>
                       )}
                       <button
                         type="button"
                         onClick={() => handleEdit(m)}
-                        className="p-1 text-slate-400 hover:text-slate-600 rounded shrink-0"
+                        aria-label={`แก้ไข ${m.name}`}
+                        className={rowButton}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -252,54 +250,59 @@ export function MembersClient({ tripId, initialMembers, billCounts }: Props) {
                         type="button"
                         onClick={() => handleDelete(m.id)}
                         disabled={!!(billCounts[m.id])}
-                        className="p-1 text-slate-400 hover:text-red-500 rounded disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                        aria-label={`ลบ ${m.name}`}
+                        title={billCounts[m.id] ? "ไม่สามารถลบสมาชิกที่มีบิลได้" : undefined}
+                        className={`${rowButton} hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400`}
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   )}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ))}
 
-        {error && <p className="text-xs text-red-500 px-1">{error}</p>}
+        {error && <p className="px-1 text-xs text-destructive">{error}</p>}
 
         {/* Add member */}
-        <div className="bg-white rounded-xl border p-3 space-y-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="ชื่อสมาชิกใหม่ *"
-              value={newName}
-              onChange={(e) => { setNewName(e.target.value); setError(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
-              className="h-10 flex-1"
+        <section className="space-y-2">
+          <h2 className="px-1 text-sm font-semibold text-slate-700">เพิ่มสมาชิก</h2>
+          <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+            <div className="flex gap-2">
+              <Input
+                placeholder="ชื่อสมาชิกใหม่ *"
+                value={newName}
+                onChange={(e) => { setNewName(e.target.value); setError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+                className="h-11 flex-1 rounded-xl bg-white px-3.5"
+              />
+              <Button
+                type="button"
+                onClick={handleAdd}
+                aria-label="เพิ่มสมาชิก"
+                className="h-11 w-11 shrink-0 rounded-xl p-0"
+                disabled={isPending}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+            <GroupInput
+              placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
+              value={newGroup}
+              onChange={setNewGroup}
+              open={isAddGroupOpen}
+              options={existingGroups.filter((group) => group !== newGroup)}
+              onToggle={() => setIsAddGroupOpen((prev) => !prev)}
+              onOptionSelect={(group) => {
+                setNewGroup(group);
+                setIsAddGroupOpen(false);
+              }}
+              className="h-10 rounded-xl bg-slate-50 px-3.5 text-sm text-slate-700"
             />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAdd}
-              className="h-10 w-10 shrink-0 p-0"
-              disabled={isPending}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
-          <GroupInput
-            placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
-            value={newGroup}
-            onChange={setNewGroup}
-            open={isAddGroupOpen}
-            options={existingGroups.filter((group) => group !== newGroup)}
-            onToggle={() => setIsAddGroupOpen((prev) => !prev)}
-            onOptionSelect={(group) => {
-              setNewGroup(group);
-              setIsAddGroupOpen(false);
-            }}
-            className="h-9 text-sm text-slate-600"
-          />
-        </div>
+        </section>
       </div>
       <TripTabBar tripId={tripId} />
     </div>

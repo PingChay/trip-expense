@@ -67,12 +67,12 @@ export function TripTabBar({ tripId }: { tripId: string }) {
   return (
     <nav
       aria-busy={isPending}
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/80 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80"
     >
       <div
-        className={`absolute inset-x-0 top-0 h-0.5 bg-slate-900/80 transition-opacity ${isPending ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-x-0 top-0 h-0.5 origin-left bg-slate-900 transition-[opacity,transform] duration-500 ease-out ${isPending ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"}`}
       />
-      <div className="mx-auto grid max-w-sm grid-cols-5 items-end gap-1 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2">
+      <div className="mx-auto grid max-w-sm grid-cols-5 items-end gap-1 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const href = tab.href(tripId);
@@ -84,6 +84,7 @@ export function TripTabBar({ tripId }: { tripId: string }) {
               key={tab.label}
               href={href}
               aria-disabled={pending}
+              aria-current={active ? "page" : undefined}
               onClick={(event) => {
                 if (pending || tab.match(pathname, tripId)) {
                   event.preventDefault();
@@ -97,30 +98,33 @@ export function TripTabBar({ tripId }: { tripId: string }) {
                 });
               }}
               className={[
+                "group flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
                 tab.emphasis
-                  ? "-mt-5 flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-700 transition-opacity"
-                  : "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors",
-                tab.emphasis
-                  ? ""
-                  : active
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
-                pending ? "opacity-75" : "",
+                  ? "-mt-6 text-[11px] font-semibold text-slate-900"
+                  : [
+                      "min-h-14 justify-center px-1 text-[11px] font-medium transition-colors",
+                      active ? "text-slate-900" : "text-slate-400 hover:text-slate-700",
+                    ].join(" "),
+                pending ? "opacity-80" : "",
               ].join(" ")}
             >
               <span
                 className={[
+                  "flex items-center justify-center transition-[transform,background-color,box-shadow] duration-200 ease-out",
                   tab.emphasis
-                    ? "flex size-14 items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 text-white shadow-lg shadow-slate-900/20 transition-transform"
-                    : "flex items-center justify-center",
+                    ? "size-14 rounded-full border-4 border-background bg-slate-900 text-white shadow-[0_8px_20px_-6px_rgb(15_23_42/0.55)] group-active:scale-95"
+                    : ["h-7 w-12 rounded-full", active ? "bg-slate-900/[0.07]" : "group-hover:bg-slate-100"].join(" "),
                   tab.emphasis && active ? "scale-105" : "",
                   pending ? "animate-pulse" : "",
                 ].join(" ")}
               >
                 {pending ? (
-                  <LoaderCircle className={`${tab.emphasis ? "h-5 w-5" : "h-4 w-4"} animate-spin`} />
+                  <LoaderCircle className={`${tab.emphasis ? "h-5 w-5" : "h-[18px] w-[18px]"} animate-spin`} />
                 ) : (
-                  <Icon className={tab.emphasis ? "h-5 w-5" : "h-4 w-4"} />
+                  <Icon
+                    className={tab.emphasis ? "h-6 w-6" : "h-[18px] w-[18px]"}
+                    strokeWidth={active || tab.emphasis ? 2.25 : 1.75}
+                  />
                 )}
               </span>
               <span>{pending ? "กำลังเปิด" : tab.label}</span>

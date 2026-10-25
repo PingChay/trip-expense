@@ -4,7 +4,9 @@ import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, X, Pencil, Check } from "lucide-react";
+import { ArrowLeft, Plus, X, Pencil, Check, LoaderCircle } from "lucide-react";
+import { PageHeader, headerIconButton } from "@/components/page-header";
+import { MemberAvatar } from "@/components/member-avatar";
 import { createTrip } from "./actions";
 
 export default function NewTripPage() {
@@ -69,20 +71,19 @@ export default function NewTripPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.push("/")}
-          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="font-semibold text-slate-900">สร้างทริปใหม่</h1>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader
+        title="สร้างทริปใหม่"
+        left={
+          <button type="button" onClick={() => router.push("/")} aria-label="ย้อนกลับ" className={headerIconButton}>
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto px-4 py-6 space-y-6">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pb-10 pt-5">
         {/* Trip name */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">ชื่อทริป *</label>
           <Input
             placeholder="เช่น เชียงใหม่ มี.ค. 68"
@@ -91,20 +92,20 @@ export default function NewTripPage() {
               setName(e.target.value);
               if (e.target.value.trim()) setErrors((er) => ({ ...er, name: undefined }));
             }}
-            className="h-12"
+            className="h-12 rounded-xl bg-white px-3.5 text-[15px]"
           />
-          {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+          {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
         </div>
 
         {/* Date range */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">วันที่เดินทาง (ไม่บังคับ)</label>
           <div className="flex gap-2 items-center">
             <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="h-12 flex-1"
+              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
             />
             <span className="text-slate-400 text-sm shrink-0">ถึง</span>
             <Input
@@ -112,7 +113,7 @@ export default function NewTripPage() {
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="h-12 flex-1"
+              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
             />
           </div>
         </div>
@@ -122,15 +123,15 @@ export default function NewTripPage() {
           <label className="text-sm font-medium text-slate-700">
             ผู้เข้าร่วม *
             {members.length > 0 && (
-              <span className="ml-2 text-xs text-slate-400 font-normal">{members.length} คน</span>
+              <span className="ml-2 text-xs font-normal text-slate-500">{members.length} คน</span>
             )}
           </label>
 
           {/* Member list */}
           {members.length > 0 && (
-            <ul className="rounded-xl border bg-white divide-y">
+            <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
               {members.map((m, idx) => (
-                <li key={idx} className="flex items-center gap-2 px-3 py-2.5">
+                <li key={idx} className="flex items-center gap-2 px-3 py-2">
                   {editingIdx === idx ? (
                     <>
                       <Input
@@ -141,28 +142,36 @@ export default function NewTripPage() {
                           if (e.key === "Enter") { e.preventDefault(); saveEdit(idx); }
                           if (e.key === "Escape") setEditingIdx(null);
                         }}
-                        className="h-8 flex-1"
+                        className="h-9 flex-1 rounded-lg bg-white"
                       />
-                      <button type="button" onClick={() => saveEdit(idx)} className="text-green-600 p-1">
+                      <button
+                        type="button"
+                        onClick={() => saveEdit(idx)}
+                        aria-label="บันทึก"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800"
+                      >
                         <Check className="h-4 w-4" />
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-sm text-slate-800">{m}</span>
+                      <MemberAvatar name={m} />
+                      <span className="ml-1 min-w-0 flex-1 truncate text-sm text-slate-900">{m}</span>
                       <button
                         type="button"
                         onClick={() => startEdit(idx)}
-                        className="p-1 text-slate-400 hover:text-slate-600"
+                        aria-label={`แก้ไข ${m}`}
+                        className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => deleteMember(idx)}
-                        className="p-1 text-slate-400 hover:text-red-500"
+                        aria-label={`ลบ ${m}`}
+                        className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </button>
                     </>
                   )}
@@ -184,14 +193,14 @@ export default function NewTripPage() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") { e.preventDefault(); addMember(); }
               }}
-              className="h-12 flex-1"
+              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
             />
-            <Button type="button" variant="outline" onClick={addMember} className="h-12 w-12 shrink-0 p-0">
-              <Plus className="h-4 w-4" />
+            <Button type="button" variant="outline" onClick={addMember} aria-label="เพิ่มผู้เข้าร่วม" className="h-12 w-12 shrink-0 rounded-xl bg-white p-0">
+              <Plus className="h-5 w-5" />
             </Button>
           </div>
-          {errors.duplicate && <p className="text-xs text-red-500">{errors.duplicate}</p>}
-          {errors.members && <p className="text-xs text-red-500">{errors.members}</p>}
+          {errors.duplicate && <p className="text-xs text-destructive">{errors.duplicate}</p>}
+          {errors.members && <p className="text-xs text-destructive">{errors.members}</p>}
         </div>
 
         {/* Actions */}
@@ -199,12 +208,13 @@ export default function NewTripPage() {
           <Button
             type="button"
             variant="outline"
-            className="flex-1 h-12"
+            className="h-12 flex-1 rounded-xl bg-white text-[15px]"
             onClick={() => router.push("/")}
           >
             ยกเลิก
           </Button>
-          <Button type="submit" className="flex-1 h-12" disabled={isPending}>
+          <Button type="submit" className="h-12 flex-1 rounded-xl text-[15px]" disabled={isPending}>
+            {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {isPending ? "กำลังสร้าง..." : "สร้างทริป"}
           </Button>
         </div>

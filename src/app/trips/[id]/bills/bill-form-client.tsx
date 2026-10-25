@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { getBillEntryLabel, type BillEntryType } from "@/lib/bill-entry";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { PageHeader, headerIconButton } from "@/components/page-header";
+import { MemberAvatar } from "@/components/member-avatar";
+import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2, Users } from "lucide-react";
 import type { BillInput } from "@/lib/types";
+
+const fieldLabel = "text-sm font-medium text-slate-700";
+const fieldInput = "h-12 rounded-xl border-input bg-white px-3.5 text-[15px]";
+const fieldError = "text-xs text-destructive";
 
 interface Member {
   id: string;
@@ -89,52 +95,58 @@ export function BillFormClient({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="font-semibold text-slate-900 flex-1">
-          {initialData ? "แก้ไขบิล" : "เพิ่มบิล"}
-        </h1>
-        {deleteAction && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50"
-          >
-            <Trash2 className="h-5 w-5" />
+    <div className="min-h-screen">
+      <PageHeader
+        title={initialData ? "แก้ไขบิล" : "เพิ่มบิล"}
+        left={
+          <button type="button" onClick={() => router.back()} aria-label="ย้อนกลับ" className={headerIconButton}>
+            <ArrowLeft className="h-5 w-5" />
           </button>
-        )}
-      </header>
+        }
+        right={
+          deleteAction && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              aria-label="ลบบิล"
+              className={`${headerIconButton} text-red-500 hover:bg-red-50 hover:text-red-600`}
+            >
+              <Trash2 className="h-[18px] w-[18px]" />
+            </button>
+          )
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto px-4 py-6 pb-28 space-y-5">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pb-32 pt-5">
         {/* Title */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">ชื่อรายการ *</label>
+        <div className="space-y-2">
+          <label className={fieldLabel}>ชื่อรายการ *</label>
           <Input
             placeholder="เช่น ค่าที่พัก, ค่าอาหารเย็น"
             value={title}
+            aria-invalid={!!errors.title}
             onChange={(e) => {
               setTitle(e.target.value);
               setErrors((er) => ({ ...er, title: undefined }));
             }}
-            className="h-12"
+            className={fieldInput}
           />
-          {errors.title && <p className="text-xs text-red-500">{errors.title}</p>}
+          {errors.title && <p className={fieldError}>{errors.title}</p>}
         </div>
 
         {/* Amount + Currency */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">จำนวนเงิน *</label>
-          <div className="flex gap-2">
-            <Input
+        <div className="space-y-2">
+          <label className={fieldLabel}>จำนวนเงิน *</label>
+          <div
+            className={[
+              "flex h-14 items-center overflow-hidden rounded-xl border bg-white transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
+              errors.amount ? "border-destructive" : "border-input",
+            ].join(" ")}
+          >
+            <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               placeholder="0.00"
@@ -143,23 +155,27 @@ export function BillFormClient({
                 setAmount(e.target.value);
                 setErrors((er) => ({ ...er, amount: undefined }));
               }}
-              className="h-12 flex-1"
+              className="h-full min-w-0 flex-1 bg-transparent px-4 text-xl font-semibold tabular-nums text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-300"
             />
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="h-12 w-24 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {["THB", "USD", "EUR", "JPY"].map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+            <div className="relative h-full shrink-0 border-l border-slate-200">
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                aria-label="สกุลเงิน"
+                className="h-full w-24 appearance-none bg-slate-50 pl-4 pr-8 text-sm font-semibold text-slate-700 outline-none"
+              >
+                {["THB", "USD", "EUR", "JPY"].map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
           </div>
-          {errors.amount && <p className="text-xs text-red-500">{errors.amount}</p>}
+          {errors.amount && <p className={fieldError}>{errors.amount}</p>}
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">ประเภทบิล</label>
+        <div className="space-y-2">
+          <label className={fieldLabel}>ประเภทบิล</label>
           <div className="grid grid-cols-2 gap-2">
             {([
               { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
@@ -170,14 +186,17 @@ export function BillFormClient({
                 <button
                   key={option.value}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setEntryType(option.value)}
                   className={[
-                    "rounded-xl border px-3 py-3 text-left transition-colors",
-                    active ? "border-slate-900 bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-50",
+                    "rounded-xl border px-3.5 py-3 text-left transition-[background-color,border-color,box-shadow] duration-150",
+                    active
+                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_6px_16px_-8px_rgb(15_23_42/0.6)]"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
                   ].join(" ")}
                 >
-                  <p className="text-sm font-medium">{getBillEntryLabel(option.value)}</p>
-                  <p className={`mt-1 text-xs ${active ? "text-slate-200" : "text-slate-400"}`}>
+                  <p className="text-sm font-semibold">{getBillEntryLabel(option.value)}</p>
+                  <p className={`mt-1 text-xs leading-snug ${active ? "text-slate-300" : "text-slate-500"}`}>
                     {option.description}
                   </p>
                 </button>
@@ -187,43 +206,46 @@ export function BillFormClient({
         </div>
 
         {/* Payer */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">ผู้จ่าย *</label>
-          <select
-            value={payerId}
-            onChange={(e) => {
-              setPayerId(e.target.value);
-              setErrors((er) => ({ ...er, payer: undefined }));
-            }}
-            className="w-full h-12 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">-- เลือกผู้จ่าย --</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          {errors.payer && <p className="text-xs text-red-500">{errors.payer}</p>}
+        <div className="space-y-2">
+          <label className={fieldLabel}>ผู้จ่าย *</label>
+          <div className="relative">
+            <select
+              value={payerId}
+              aria-invalid={!!errors.payer}
+              onChange={(e) => {
+                setPayerId(e.target.value);
+                setErrors((er) => ({ ...er, payer: undefined }));
+              }}
+              className={`${fieldInput} w-full appearance-none border pr-10 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30`}
+            >
+              <option value="">-- เลือกผู้จ่าย --</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          </div>
+          {errors.payer && <p className={fieldError}>{errors.payer}</p>}
         </div>
 
         {/* Participants */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700">ผู้ร่วมหาร *</label>
-            <div className="flex gap-2 text-xs">
+            <label className={fieldLabel}>ผู้ร่วมหาร *</label>
+            <div className="flex items-center gap-1 text-xs">
               <button
                 type="button"
                 onClick={() => setParticipants(members.map((m) => m.id))}
-                className="text-blue-500 hover:underline"
+                className="rounded-full px-2 py-1 font-medium text-slate-700 hover:bg-slate-200/60"
               >
                 เลือกทั้งหมด
               </button>
-              <span className="text-slate-300">|</span>
               <button
                 type="button"
                 onClick={() => setParticipants([])}
-                className="text-slate-400 hover:underline"
+                className="rounded-full px-2 py-1 text-slate-500 hover:bg-slate-200/60"
               >
                 ล้างทั้งหมด
               </button>
@@ -244,17 +266,17 @@ export function BillFormClient({
             ];
 
             return (
-              <div className="bg-white rounded-xl border overflow-hidden divide-y">
+              <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
                 {groupKeys.map((groupKey) => (
                   <div key={groupKey}>
                     {groupKey !== UNGROUPED && (
-                      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b">
-                        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                          <span>👨‍👩‍👧</span> {groupKey}
+                      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                          <Users className="h-3.5 w-3.5 text-slate-400" /> {groupKey}
                         </span>
                         <button
                           type="button"
-                          className="text-xs text-blue-500 hover:underline"
+                          className="rounded-full px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-200/60"
                           onClick={() => {
                             const groupIds = grouped[groupKey].map((m) => m.id);
                             const allSelected = groupIds.every((id) => participants.includes(id));
@@ -271,25 +293,29 @@ export function BillFormClient({
                         </button>
                       </div>
                     )}
-                    {grouped[groupKey].map((m) => (
-                      <label
-                        key={m.id}
-                        className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-slate-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={participants.includes(m.id)}
-                          onChange={() => toggleParticipant(m.id)}
-                          className="h-4 w-4 rounded"
-                        />
-                        <span className="flex-1 text-sm text-slate-800">{m.name}</span>
-                        {amountNum > 0 && participants.includes(m.id) && (
-                          <span className="text-xs text-slate-400 tabular-nums">
-                            {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
-                          </span>
-                        )}
-                      </label>
-                    ))}
+                    {grouped[groupKey].map((m) => {
+                      const checked = participants.includes(m.id);
+                      return (
+                        <label
+                          key={m.id}
+                          className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleParticipant(m.id)}
+                            className="size-[18px] shrink-0 rounded"
+                          />
+                          <MemberAvatar name={m.name} size="sm" />
+                          <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
+                          {amountNum > 0 && checked && (
+                            <span className="text-xs tabular-nums text-slate-500">
+                              {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -297,54 +323,60 @@ export function BillFormClient({
           })()}
 
           {amountNum > 0 && selectedCount > 0 && (
-            <div className="bg-blue-50 rounded-lg px-3 py-2 text-sm text-blue-700">
-              {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency} / คน
-              &nbsp;·&nbsp;{selectedCount} คน
+            <div className="flex items-center gap-2 rounded-xl bg-slate-900/[0.05] px-4 py-2.5 text-sm text-slate-700">
+              <Divide className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>
+                <span className="font-semibold tabular-nums text-slate-900">
+                  {perPerson.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency} / คน
+                </span>
+                &nbsp;·&nbsp;{selectedCount} คน
+              </span>
             </div>
           )}
           {errors.participants && (
-            <p className="text-xs text-red-500">{errors.participants}</p>
+            <p className={fieldError}>{errors.participants}</p>
           )}
         </div>
 
         {/* Date */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">วันที่</label>
+        <div className="space-y-2">
+          <label className={fieldLabel}>วันที่</label>
           <Input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="h-12"
+            className={fieldInput}
           />
         </div>
 
         {/* Note */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">หมายเหตุ</label>
+        <div className="space-y-2">
+          <label className={fieldLabel}>หมายเหตุ</label>
           <textarea
             placeholder="(ไม่บังคับ)"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-[88px] w-full resize-none rounded-xl border border-input bg-white px-3.5 py-3 text-[15px] outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
           />
           {entryType === "advance" && (
-            <p className="text-xs text-amber-600">
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
               รายการประเภทเงินสำรองจะถูกเก็บไว้ในบิล แต่ไม่ถูกรวมในยอดค่าใช้จ่ายและสรุปโอนเงิน
             </p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-1">
           <Button
             type="button"
             variant="outline"
-            className="flex-1 h-12"
+            className="h-12 flex-1 rounded-xl bg-white text-[15px]"
             onClick={() => router.back()}
           >
             ยกเลิก
           </Button>
-          <Button type="submit" className="flex-1 h-12" disabled={isPending || isDeleting}>
+          <Button type="submit" className="h-12 flex-1 rounded-xl text-[15px]" disabled={isPending || isDeleting}>
+            {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
         </div>

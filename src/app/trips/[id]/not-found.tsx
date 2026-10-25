@@ -4,10 +4,10 @@ import { MapPin } from "lucide-react";
 
 export default function TripNotFound() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center px-5">
       <div className="text-center space-y-4 max-w-xs">
         <div className="flex justify-center">
-          <div className="rounded-2xl bg-slate-200 p-4">
+          <div className="rounded-[1.25rem] bg-slate-200/70 p-4">
             <MapPin className="h-8 w-8 text-slate-500" />
           </div>
         </div>
@@ -16,7 +16,7 @@ export default function TripNotFound() {
           Trip ID อาจไม่ถูกต้อง หรือทริปนี้ยังไม่ได้สร้าง
         </p>
         <Link href="/">
-          <Button className="w-full">กลับหน้าแรก</Button>
+          <Button className="h-11 w-full rounded-xl">กลับหน้าแรก</Button>
         </Link>
       </div>
     </div>

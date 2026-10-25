@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { MemberAvatar } from "@/components/member-avatar";
 
 export default async function JoinPage({
   params,
@@ -24,11 +25,11 @@ export default async function JoinPage({
     .reduce((s, b) => s + Number(b.amount), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm space-y-5">
         <div className="text-center space-y-1">
-          <p className="text-xs text-slate-400 font-mono tracking-widest">{id}</p>
-          <h1 className="text-2xl font-bold text-slate-900">{trip.name}</h1>
+          <p className="font-mono text-xs tracking-[0.2em] text-slate-500">{id}</p>
+          <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900">{trip.name}</h1>
           {trip.start_date && (
             <p className="text-sm text-slate-500">
               {trip.start_date}
@@ -37,26 +38,27 @@ export default async function JoinPage({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border p-4 text-center">
-            <p className="text-2xl font-bold text-slate-900">{(members ?? []).length}</p>
-            <p className="text-xs text-slate-400 mt-0.5">สมาชิก</p>
+        <dl className="grid grid-cols-2 divide-x divide-slate-100 rounded-2xl border border-slate-200/80 bg-white py-4 text-center shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+          <div>
+            <dd className="text-2xl font-bold text-slate-900">{(members ?? []).length}</dd>
+            <dt className="mt-0.5 text-xs text-slate-500">สมาชิก</dt>
           </div>
-          <div className="bg-white rounded-2xl border p-4 text-center">
-            <p className="text-2xl font-bold text-slate-900">{(bills ?? []).length}</p>
-            <p className="text-xs text-slate-400 mt-0.5">บิล</p>
+          <div>
+            <dd className="text-2xl font-bold text-slate-900">{(bills ?? []).length}</dd>
+            <dt className="mt-0.5 text-xs text-slate-500">บิล</dt>
           </div>
-        </div>
+        </dl>
 
         {(members ?? []).length > 0 && (
-          <div className="bg-white rounded-2xl border p-4">
-            <p className="text-xs font-medium text-slate-500 mb-2">สมาชิกในทริป</p>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+            <p className="mb-3 text-sm font-semibold text-slate-700">สมาชิกในทริป</p>
             <div className="flex flex-wrap gap-2">
               {(members ?? []).map((m, i) => (
                 <span
                   key={i}
-                  className="bg-slate-100 text-slate-700 text-sm px-2.5 py-1 rounded-full"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-sm text-slate-700"
                 >
+                  <MemberAvatar name={m.name} size="sm" />
                   {m.name}
                 </span>
               ))}
@@ -65,16 +67,16 @@ export default async function JoinPage({
         )}
 
         {total > 0 && (
-          <div className="bg-white rounded-2xl border p-4 text-center">
-            <p className="text-xs text-slate-500">ยอดรวมค่าใช้จ่าย</p>
-            <p className="text-2xl font-bold text-slate-900">
+          <div className="rounded-2xl bg-slate-900 p-5 text-center text-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.55)]">
+            <p className="text-xs text-slate-400">ยอดรวมค่าใช้จ่าย</p>
+            <p className="mt-1 text-3xl font-bold tabular-nums">
               {total.toLocaleString("th-TH", { minimumFractionDigits: 0 })} ฿
             </p>
           </div>
         )}
 
         <Link href={`/trips/${id}`} className="block">
-          <Button className="w-full h-12 text-base">เข้าร่วมทริปนี้</Button>
+          <Button className="h-12 w-full rounded-xl text-base">เข้าร่วมทริปนี้</Button>
         </Link>
       </div>
     </div>
