@@ -71,6 +71,7 @@ interface Props {
   settlements: Settlement[];
   groupSettlements: GroupSettlement[];
   promptPayTargets: Record<string, PromptPayTarget>;
+  payerIds: Record<string, string>;
 }
 
 type Tab = "breakdown" | "person" | "group" | "settlement";
@@ -254,6 +255,7 @@ export function ReportClient({
   settlements,
   groupSettlements,
   promptPayTargets,
+  payerIds,
 }: Props) {
   const hasGroups = groupSummaries.length > 0;
   const [tab, setTab] = useState<Tab>("settlement");
@@ -423,7 +425,15 @@ export function ReportClient({
                           <p className="font-bold tabular-nums text-slate-900">
                             {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
                           </p>
-                          <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                          <SettlementQr
+                            target={promptPayTargets[s.toName]}
+                            tripId={tripId}
+                            from={s.fromName}
+                            fromMemberId={payerIds[s.fromName]}
+                            to={s.toName}
+                            amount={s.amount}
+                            currency={s.currency}
+                          />
                         </div>
                       </div>
                     ))}
@@ -445,7 +455,15 @@ export function ReportClient({
                           <p className="font-bold tabular-nums text-slate-900">
                             {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
                           </p>
-                          <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                          <SettlementQr
+                            target={promptPayTargets[s.toName]}
+                            tripId={tripId}
+                            from={s.fromName}
+                            fromMemberId={payerIds[s.fromName]}
+                            to={s.toName}
+                            amount={s.amount}
+                            currency={s.currency}
+                          />
                         </div>
                       </div>
                     ))}

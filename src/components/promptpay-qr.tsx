@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { Check, Copy, QrCode, X } from "lucide-react";
+import { Check, CircleCheck, Copy, LoaderCircle, QrCode, X } from "lucide-react";
 import { formatPromptPay, promptPayPayload } from "@/lib/promptpay";
 import type { PromptPayTarget } from "@/lib/members";
+import { recordPayment } from "@/app/trips/[id]/payment-actions";
 
 function QrSvg({ value }: { value: string }) {
   const { modules } = QRCode.create(value, { errorCorrectionLevel: "M" });
@@ -30,20 +32,54 @@ function QrSvg({ value }: { value: string }) {
   );
 }
 
-/** QR button for one settlement row; opens a sheet with a PromptPay QR for the exact amount. */
+type PaymentRecord = { tripId: string; from: string; fromMemberId: string; toMemberId: string };
+
+/**
+ * QR button for one settlement row; opens a sheet with a PromptPay QR for the exact amount.
+ * Confirming records the transfer as a payment bill so the debt disappears from the summary.
+ */
 export function PromptPayQrButton({
   to,
   owner,
   promptpay,
   amount,
+  payment,
 }: {
   to: string;
   owner: string;
   promptpay: string;
   amount: number;
+  payment: PaymentRecord;
 }) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
+  const [isRecording, startRecording] = useTransition();
+  const [recorded, setRecorded] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
+
+  function confirmPayment() {
+    setRecordError(null);
+    startRecording(async () => {
+      try {
+        await recordPayment(payment.tripId, {
+          fromMemberId: payment.fromMemberId,
+          toMemberId: payment.toMemberId,
+          amount,
+          currency: "THB",
+          title: `${payment.from} โอนให้ ${to}`,
+        });
+        setRecorded(true);
+        // let the confirmation register before the row (and this dialog) leaves the page
+        setTimeout(() => {
+          dialogRef.current?.close();
+          router.refresh();
+        }, 900);
+      } catch {
+        setRecordError("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
+      }
+    });
+  }
 
   useEffect(() => {
     if (!copied) return;
@@ -108,6 +144,30 @@ export function PromptPayQrButton({
               <span aria-live="polite">{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
             </button>
           </div>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            {recorded ? (
+              <p role="status" className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-50 text-sm font-medium text-positive">
+                <CircleCheck className="h-5 w-5" />
+                บันทึกการจ่ายเงินแล้ว
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={confirmPayment}
+                  disabled={isRecording}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-[15px] font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-70"
+                >
+                  {isRecording && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                  {isRecording ? "กำลังบันทึก..." : "จ่ายเงินเรียบร้อยแล้ว"}
+                </button>
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  {recordError ?? `กดหลังโอนแล้ว ระบบจะบันทึกบิลการจ่ายเงิน ${payment.from} → ${to}`}
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </dialog>
     </>
@@ -117,15 +177,29 @@ export function PromptPayQrButton({
 /** QR button when the receiver has PromptPay and the transfer is in baht; nothing otherwise. */
 export function SettlementQr({
   target,
+  tripId,
+  from,
+  fromMemberId,
   to,
   amount,
   currency,
 }: {
   target: PromptPayTarget | undefined;
+  tripId: string;
+  from: string;
+  fromMemberId: string | undefined;
   to: string;
   amount: number;
   currency: string;
 }) {
-  if (!target || currency !== "THB") return null;
-  return <PromptPayQrButton to={to} owner={target.owner} promptpay={target.promptpay} amount={amount} />;
+  if (!target || !fromMemberId || currency !== "THB") return null;
+  return (
+    <PromptPayQrButton
+      to={to}
+      owner={target.owner}
+      promptpay={target.promptpay}
+      amount={amount}
+      payment={{ tripId, from, fromMemberId, toMemberId: target.ownerId }}
+    />
+  );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { fetchMembersWithPromptPay, promptPayByLabel } from "@/lib/members";
+import { fetchMembersWithPromptPay, payerIdByLabel, promptPayByLabel } from "@/lib/members";
 import { computeBalances, computeGroupSettlements } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
@@ -59,6 +59,7 @@ export default async function TripDashboard({
   const settlements = computeGroupSettlements(members ?? [], normalizedBills);
   const SETTLEMENT_PREVIEW = 3;
   const promptPayTargets = promptPayByLabel(members ?? []);
+  const payerIds = payerIdByLabel(members ?? []);
   const memberCount = (members ?? []).length;
   const billCount = (bills ?? []).length;
 
@@ -136,7 +137,15 @@ export default async function TripDashboard({
                       {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
                       <span className="text-xs font-medium text-slate-400">{s.currency}</span>
                     </p>
-                    <SettlementQr target={promptPayTargets[s.toName]} to={s.toName} amount={s.amount} currency={s.currency} />
+                    <SettlementQr
+                      target={promptPayTargets[s.toName]}
+                      tripId={id}
+                      from={s.fromName}
+                      fromMemberId={payerIds[s.fromName]}
+                      to={s.toName}
+                      amount={s.amount}
+                      currency={s.currency}
+                    />
                   </div>
                 </li>
               ))}

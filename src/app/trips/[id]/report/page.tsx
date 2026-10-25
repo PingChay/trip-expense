@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { fetchMembersWithPromptPay, promptPayByLabel } from "@/lib/members";
+import { fetchMembersWithPromptPay, payerIdByLabel, promptPayByLabel } from "@/lib/members";
 import { billShares, computeGroupSettlements, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
@@ -149,6 +149,7 @@ export default async function ReportPage({
       settlements={settlements}
       groupSettlements={groupSettlements}
       promptPayTargets={promptPayByLabel(members ?? [])}
+      payerIds={payerIdByLabel(members ?? [])}
     />
   );
 }

@@ -23,22 +23,36 @@ export async function fetchMembersWithPromptPay<T extends { id: string; name: st
   return data as T[] | null;
 }
 
-export type PromptPayTarget = { owner: string; promptpay: string };
+export type PromptPayTarget = { owner: string; ownerId: string; promptpay: string };
 
 /**
  * Who receives a transfer addressed to a settlement label: the member with that
  * name, or for a group label the first member of that group who has PromptPay.
  */
 export function promptPayByLabel(
-  members: Array<{ name: string; group_name?: string | null; promptpay?: string | null }>
+  members: Array<{ id: string; name: string; group_name?: string | null; promptpay?: string | null }>
 ): Record<string, PromptPayTarget> {
   const targets: Record<string, PromptPayTarget> = {};
   for (const member of members) {
     if (!member.promptpay) continue;
-    const target = { owner: member.name, promptpay: member.promptpay };
+    const target = { owner: member.name, ownerId: member.id, promptpay: member.promptpay };
     targets[member.name] ??= target;
     const group = member.group_name?.trim();
     if (group) targets[group] ??= target;
   }
   return targets;
+}
+
+/**
+ * Member who pays on behalf of a settlement label: the member with that name,
+ * or the first member of that group.
+ */
+export function payerIdByLabel(members: Array<{ id: string; name: string; group_name?: string | null }>) {
+  const ids: Record<string, string> = {};
+  for (const member of members) {
+    ids[member.name] ??= member.id;
+    const group = member.group_name?.trim();
+    if (group) ids[group] ??= member.id;
+  }
+  return ids;
 }
