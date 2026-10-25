@@ -8,7 +8,8 @@ import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { avatarColorKey } from "@/lib/avatar";
 import { TransferParties } from "@/components/transfer-parties";
 import { SettlementQr } from "@/components/promptpay-qr";
 import { ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
@@ -64,6 +65,7 @@ export default async function TripDashboard({
   const billCount = (bills ?? []).length;
 
   return (
+    <AvatarColorProvider keys={(members ?? []).map(avatarColorKey)}>
     <div className="min-h-screen">
       <TripTracker tripId={id} tripName={trip.name} />
       <PageHeader
@@ -177,7 +179,7 @@ export default async function TripDashboard({
                 return (
                   <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <span className="flex min-w-0 items-center gap-2.5">
-                      <MemberAvatar name={m.name} />
+                      <MemberAvatar name={m.name} group={m.group_name} />
                       <span className="truncate text-sm text-slate-800">{m.name}</span>
                     </span>
                     <div className="shrink-0 space-y-0.5 text-right">
@@ -220,5 +222,6 @@ export default async function TripDashboard({
       </div>
       <TripTabBar tripId={id} />
     </div>
+    </AvatarColorProvider>
   );
 }

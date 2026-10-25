@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
 import { billShares } from "@/lib/balance";
 import { PageHeader, headerIconButton } from "@/components/page-header";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { avatarColorKey } from "@/lib/avatar";
 import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2, Users } from "lucide-react";
 import type { BillInput } from "@/lib/types";
 
@@ -148,6 +149,7 @@ export function BillFormClient({
   }
 
   return (
+    <AvatarColorProvider keys={members.map(avatarColorKey)}>
     <div className="min-h-screen">
       <PageHeader
         title={initialData ? "แก้ไขบิล" : "เพิ่มบิล"}
@@ -255,7 +257,7 @@ export function BillFormClient({
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
                   ].join(" ")}
                 >
-                  <MemberAvatar name={m.name} size="sm" />
+                  <MemberAvatar name={m.name} group={m.group_name} size="sm" />
                   {m.name}
                 </button>
               );
@@ -364,7 +366,7 @@ export function BillFormClient({
                               onChange={() => toggleParticipant(m.id)}
                               className="size-[18px] shrink-0 rounded"
                             />
-                            <MemberAvatar name={m.name} size="sm" />
+                            <MemberAvatar name={m.name} group={m.group_name} size="sm" />
                             <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
                             {amountNum > 0 && checked && (
                               <span
@@ -522,5 +524,6 @@ export function BillFormClient({
         </div>
       </form>
     </div>
+    </AvatarColorProvider>
   );
 }

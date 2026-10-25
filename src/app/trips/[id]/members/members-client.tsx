@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { avatarColorKey } from "@/lib/avatar";
 import { Plus, X, Pencil, Check, Users, ChevronDown, QrCode } from "lucide-react";
 import { formatPromptPay, isValidPromptPay, normalizePromptPay } from "@/lib/promptpay";
 import { addMember, updateMember, deleteMember } from "./actions";
@@ -242,6 +243,7 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
     "flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700";
 
   return (
+    <AvatarColorProvider keys={members.map(avatarColorKey)}>
     <div className="min-h-screen">
       <PageHeader title="สมาชิก" subtitle={members.length > 0 ? `${members.length} คน` : undefined} />
 
@@ -322,7 +324,7 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <MemberAvatar name={m.name} />
+                      <MemberAvatar name={m.name} group={m.group_name} />
                       <div className="ml-1 min-w-0 flex-1">
                         <p className="truncate text-sm text-slate-900">{m.name}</p>
                         {m.promptpay && (
@@ -406,5 +408,6 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
       </div>
       <TripTabBar tripId={tripId} />
     </div>
+    </AvatarColorProvider>
   );
 }

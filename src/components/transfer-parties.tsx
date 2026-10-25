@@ -1,16 +1,10 @@
-import { ArrowRight, Users } from "lucide-react";
-import { MemberAvatar } from "@/components/member-avatar";
+import { ArrowRight } from "lucide-react";
+import { GroupAvatar, MemberAvatar } from "@/components/member-avatar";
 
 function TransferParty({ name, isGroup, tone }: { name: string; isGroup?: boolean; tone: "from" | "to" }) {
   return (
     <span className="flex items-center gap-1.5">
-      {isGroup ? (
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-          <Users className="h-3.5 w-3.5" />
-        </span>
-      ) : (
-        <MemberAvatar name={name} size="sm" />
-      )}
+      {isGroup ? <GroupAvatar group={name} /> : <MemberAvatar name={name} size="sm" />}
       <span className={`break-words ${tone === "from" ? "text-negative" : "text-positive"}`}>{name}</span>
     </span>
   );

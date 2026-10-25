@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { avatarColorKey } from "@/lib/avatar";
 
 export default async function JoinPage({
   params,
@@ -14,7 +15,7 @@ export default async function JoinPage({
 
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
-    supabase.from("members").select("name").eq("trip_id", id),
+    supabase.from("members").select("name, group_name").eq("trip_id", id).order("created_at"),
     supabase.from("bills").select("amount, note").eq("trip_id", id),
   ]);
 
@@ -25,6 +26,7 @@ export default async function JoinPage({
     .reduce((s, b) => s + Number(b.amount), 0);
 
   return (
+    <AvatarColorProvider keys={(members ?? []).map(avatarColorKey)}>
     <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm space-y-5">
         <div className="text-center space-y-1">
@@ -58,7 +60,7 @@ export default async function JoinPage({
                   key={i}
                   className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-sm text-slate-700"
                 >
-                  <MemberAvatar name={m.name} size="sm" />
+                  <MemberAvatar name={m.name} group={m.group_name} size="sm" />
                   {m.name}
                 </span>
               ))}
@@ -80,5 +82,6 @@ export default async function JoinPage({
         </Link>
       </div>
     </div>
+    </AvatarColorProvider>
   );
 }

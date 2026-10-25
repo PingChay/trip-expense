@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Plus, X, Pencil, Check, LoaderCircle } from "lucide-react";
 import { PageHeader, headerIconButton } from "@/components/page-header";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
 import { createTrip } from "./actions";
 
 export default function NewTripPage() {
@@ -71,6 +71,7 @@ export default function NewTripPage() {
   }
 
   return (
+    <AvatarColorProvider keys={members}>
     <div className="min-h-screen">
       <PageHeader
         title="สร้างทริปใหม่"
@@ -220,6 +221,7 @@ export default function NewTripPage() {
         </div>
       </form>
     </div>
+    </AvatarColorProvider>
   );
 }
 

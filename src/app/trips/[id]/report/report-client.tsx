@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Users } from "lucide-react";
+import { Check } from "lucide-react";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
-import { MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
 import { TransferParties } from "@/components/transfer-parties";
 import { SettlementQr } from "@/components/promptpay-qr";
 import type { PromptPayTarget } from "@/lib/members";
@@ -250,6 +250,8 @@ export function ReportClient({
   payerIds,
 }: Props) {
   const hasGroups = groupSummaries.length > 0;
+  // bill rows only carry names; groupName is the member's group label when the trip has groups
+  const groupOf = Object.fromEntries(perPerson.map((p) => [p.name, p.groupName]));
   const [tab, setTab] = useState<Tab>("settlement");
 
   const tabs: { id: Tab; label: string }[] = [
@@ -260,6 +262,7 @@ export function ReportClient({
   ];
 
   return (
+    <AvatarColorProvider keys={perPerson.map((p) => p.groupName ?? p.name)}>
     <div className="min-h-screen">
       <PageHeader title="สรุป" />
 
@@ -321,7 +324,7 @@ export function ReportClient({
                         <tr key={i} className="border-b border-slate-100 last:border-b-0">
                           <td className="px-4 py-2 text-slate-700">
                             <span className="flex items-center gap-2">
-                              <MemberAvatar name={s.name} size="sm" />
+                              <MemberAvatar name={s.name} group={groupOf[s.name]} size="sm" />
                               {s.name}
                             </span>
                           </td>
@@ -353,7 +356,7 @@ export function ReportClient({
                   key={p.id}
                   heading={
                     <p className="flex min-w-0 items-center gap-2.5 font-semibold text-slate-900">
-                      <MemberAvatar name={p.name} />
+                      <MemberAvatar name={p.name} group={p.groupName} />
                       <span className="truncate">{p.name}</span>
                     </p>
                   }
@@ -374,7 +377,7 @@ export function ReportClient({
                 key={g.groupName}
                 heading={
                   <p className="flex min-w-0 items-center gap-1.5 font-semibold text-slate-900">
-                    {g.isGroup ? <Users className="h-4 w-4 shrink-0 text-slate-400" /> : <MemberAvatar name={g.groupName} size="sm" />}
+                    {g.isGroup ? <GroupAvatar group={g.groupName} /> : <MemberAvatar name={g.groupName} size="sm" />}
                     <span className="break-words">{g.groupName}</span>
                     {g.isGroup && <span className="shrink-0 text-xs font-normal text-slate-400">{g.memberCount} คน</span>}
                   </p>
@@ -468,5 +471,6 @@ export function ReportClient({
       </div>
       <TripTabBar tripId={tripId} />
     </div>
+    </AvatarColorProvider>
   );
 }
