@@ -183,7 +183,7 @@ function SummaryTotals({
 
 function TransferParty({ name, isGroup, tone }: { name: string; isGroup?: boolean; tone: "from" | "to" }) {
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
+    <span className="flex items-center gap-1.5">
       {isGroup ? (
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <Users className="h-3.5 w-3.5" />
@@ -191,7 +191,7 @@ function TransferParty({ name, isGroup, tone }: { name: string; isGroup?: boolea
       ) : (
         <MemberAvatar name={name} size="sm" />
       )}
-      <span className={`truncate ${tone === "from" ? "text-negative" : "text-positive"}`}>{name}</span>
+      <span className={`break-words ${tone === "from" ? "text-negative" : "text-positive"}`}>{name}</span>
     </span>
   );
 }
@@ -208,10 +208,13 @@ function TransferParties({
   toIsGroup?: boolean;
 }) {
   return (
-    <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
+    <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm font-medium">
       <TransferParty name={from} isGroup={fromIsGroup} tone="from" />
-      <ArrowRight aria-label="โอนให้" className="h-4 w-4 shrink-0 text-slate-400" />
-      <TransferParty name={to} isGroup={toIsGroup} tone="to" />
+      {/* arrow stays with the receiver so a wrapped row reads "from" / "→ to" */}
+      <span className="flex items-center gap-2">
+        <ArrowRight aria-label="โอนให้" className="h-4 w-4 shrink-0 text-slate-400" />
+        <TransferParty name={to} isGroup={toIsGroup} tone="to" />
+      </span>
     </p>
   );
 }
