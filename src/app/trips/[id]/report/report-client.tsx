@@ -91,95 +91,156 @@ function mergeBalances(primary: CurrencyBalance[], secondary: CurrencyBalance[])
   return Array.from(totals.entries()).map(([currency, balance]) => ({ currency, balance }));
 }
 
-function SummaryRows({
+type SummaryItem = { currency: string; paid: number; owed: number; balance: number };
+
+const money = (value: number) =>
+  value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/** "+" = gets money back, "−" = needs to pay; colour carries the same meaning at a glance. */
+function signed(balance: number, advance = false) {
+  const rounded = round2(balance);
+  const sign = rounded > 0.005 ? "+" : rounded < -0.005 ? "−" : "";
+  const tone = advance
+    ? sign
+      ? "text-amber-700"
+      : "text-amber-700/60"
+    : sign === "+"
+      ? "text-positive"
+      : sign === "−"
+        ? "text-negative"
+        : "text-slate-400";
+  return { text: `${sign}${money(Math.abs(rounded))}`, tone, sign };
+}
+
+function Verdict({ items }: { items: CurrencyBalance[] }) {
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      {items.map((item) => {
+        const v = signed(item.balance);
+        const pill =
+          v.sign === "+" ? "bg-emerald-50" : v.sign === "−" ? "bg-red-50" : "bg-slate-100";
+        return (
+          <span
+            key={item.currency}
+            className={`rounded-full px-2.5 py-1 text-[15px] font-semibold leading-none tabular-nums ${pill} ${v.tone}`}
+          >
+            {v.text} <span className="text-xs font-medium">{item.currency}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function SignLegend() {
+  return (
+    <p className="flex items-center gap-3 px-1 text-xs text-slate-500">
+      <span><b className="font-semibold text-positive">+</b> ได้คืน</span>
+      <span><b className="font-semibold text-negative">−</b> ต้องจ่าย</span>
+      <span className="flex items-center gap-1">
+        <span className="size-2.5 rounded-sm bg-amber-200" /> เงินสำรอง
+      </span>
+    </p>
+  );
+}
+
+/** Receipt-style breakdown: paid, minus own share, equals what this part contributes. */
+function LedgerSection({
+  title,
   items,
   paidLabel,
   owedLabel,
-  totalLabel,
-  reversePrimarySecondary = false,
-  showTotal = true,
+  advance = false,
 }: {
-  items: Array<{ currency: string; paid: number; owed: number; balance: number }>;
+  title: string;
+  items: SummaryItem[];
   paidLabel: string;
   owedLabel: string;
-  totalLabel: string;
-  reversePrimarySecondary?: boolean;
-  showTotal?: boolean;
+  advance?: boolean;
 }) {
-  return items.map(({ currency, paid, owed, balance }) => {
-    const rounded = Math.round(balance * 100) / 100;
-    const primaryRows = reversePrimarySecondary
-      ? [
-          { label: owedLabel, value: owed },
-          { label: paidLabel, value: paid },
-        ]
-      : [
-          { label: paidLabel, value: paid },
-          { label: owedLabel, value: owed },
-        ];
-
-    return (
-      <div key={currency} className="mb-3 last:mb-0">
-        {items.length > 1 && (
-          <p className="mb-1.5 text-xs font-semibold text-slate-500">{currency}</p>
-        )}
-        <div className="space-y-1 text-sm">
-          {primaryRows.map((row) => (
-            <div key={row.label} className="flex justify-between text-slate-500">
-              <span>{row.label}</span>
+  return (
+    <div className={advance ? "rounded-xl bg-amber-50 p-3" : ""}>
+      <p className={`mb-2 text-xs font-semibold ${advance ? "text-amber-800" : "text-slate-500"}`}>
+        {title}
+      </p>
+      {items.map(({ currency, paid, owed, balance }) => {
+        const net = signed(balance, advance);
+        return (
+          <div key={currency} className="mb-3 space-y-1 text-sm last:mb-0">
+            {items.length > 1 && <p className="text-xs font-semibold text-slate-500">{currency}</p>}
+            <div className="flex justify-between text-slate-600">
+              <span>{paidLabel}</span>
               <span className="tabular-nums">
-                {row.value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                {money(paid)} {currency}
               </span>
             </div>
-          ))}
-          {showTotal && (
-            <div className="mt-1 flex justify-between border-t border-slate-100 pt-2 font-semibold">
-              <span className="text-slate-700">{totalLabel}</span>
-              <span
-                className={`tabular-nums ${
-                  rounded > 0.005 ? "text-positive" : rounded < -0.005 ? "text-negative" : "text-slate-400"
-                }`}
-              >
-                {rounded > 0 ? "+" : ""}
-                {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+            <div className="flex justify-between text-slate-600">
+              <span>{owedLabel}</span>
+              <span className="tabular-nums">
+                − {money(owed)} {currency}
               </span>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  });
+            <div
+              className={`flex justify-between border-t pt-1.5 font-medium ${advance ? "border-amber-200/70" : "border-slate-100"}`}
+            >
+              <span className="text-slate-700">สรุป</span>
+              <span className={`tabular-nums ${net.tone}`}>
+                {net.text} {currency}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-function SummaryTotals({
-  items,
-  totalLabel,
-}: {
-  items: CurrencyBalance[];
-  totalLabel: string;
-}) {
-  return items.map(({ currency, balance }) => {
-    const rounded = Math.round(balance * 100) / 100;
+const LEDGER_LABELS = {
+  paid: "จ่ายไป",
+  owed: "ส่วนของตัวเอง",
+  advancePaid: "ให้เงินสำรอง",
+  advanceOwed: "ถือเงินสำรอง",
+};
 
-    return (
-      <div key={currency} className="mt-3 border-t border-slate-100 pt-2.5">
-        {items.length > 1 && (
-          <p className="mb-1.5 text-xs font-semibold text-slate-500">{currency}</p>
-        )}
-        <div className="flex justify-between font-semibold">
-          <span className="text-slate-700">{totalLabel}</span>
-          <span
-            className={`tabular-nums ${
-              rounded > 0.005 ? "text-positive" : rounded < -0.005 ? "text-negative" : "text-slate-400"
-            }`}
-          >
-            {rounded > 0 ? "+" : ""}
-            {rounded.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
-          </span>
-        </div>
+function SummaryCard({
+  heading,
+  currencies,
+  advanceCurrencies,
+  labels,
+}: {
+  heading: React.ReactNode;
+  currencies: SummaryItem[];
+  advanceCurrencies: SummaryItem[];
+  labels: { paid: string; owed: string; advancePaid: string; advanceOwed: string };
+}) {
+  const empty = currencies.length === 0 && advanceCurrencies.length === 0;
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        {heading}
+        {!empty && <Verdict items={mergeBalances(currencies, advanceCurrencies)} />}
       </div>
-    );
-  });
+      {empty ? (
+        <p className="text-xs text-slate-400">ยังไม่มีบิล</p>
+      ) : (
+        <div className="space-y-4">
+          {currencies.length > 0 && (
+            <LedgerSection title="ค่าใช้จ่าย" items={currencies} paidLabel={labels.paid} owedLabel={labels.owed} />
+          )}
+          {advanceCurrencies.length > 0 && (
+            <LedgerSection
+              advance
+              title="เงินสำรอง"
+              items={advanceCurrencies}
+              paidLabel={labels.advancePaid}
+              owedLabel={labels.advanceOwed}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries, settlements, groupSettlements }: Props) {
@@ -277,116 +338,47 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
         )}
 
         {tab === "person" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            {perPerson.length > 0 && <SignLegend />}
             {perPerson.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-300 py-14 text-center text-sm text-slate-500">ยังไม่มีรายการ</p>
             ) : (
-              <div className="space-y-3">
-              {perPerson.map((p) => (
-                <div key={p.id} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-                  <p className="mb-3 flex items-center gap-2.5 font-semibold text-slate-900">
-                    <MemberAvatar name={p.name} />
-                    {p.name}
-                  </p>
-                  {p.currencies.length === 0 && p.advanceCurrencies.length === 0 ? (
-                    <p className="text-xs text-slate-400">ยังไม่มีบิลเกี่ยวข้อง</p>
-                  ) : (
-                    <>
-                      {p.currencies.length > 0 && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-slate-500">ค่าใช้จ่ายจริง</span>
-                          </div>
-                          <SummaryRows
-                            items={p.currencies}
-                            paidLabel="จ่ายแทนไป"
-                            owedLabel="ส่วนแบ่งของตัวเอง"
-                            totalLabel="ยอดสุทธิ"
-                            showTotal={p.advanceCurrencies.length === 0}
-                          />
-                        </div>
-                      )}
-
-                      {p.advanceCurrencies.length > 0 && (
-                        <div className="mt-4 rounded-xl bg-amber-50 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-amber-800">เงินสำรอง</span>
-                          </div>
-                          <SummaryRows
-                            items={p.advanceCurrencies}
-                            paidLabel="จ่ายสำรองออกไปก่อน"
-                            owedLabel="เงินสำรองที่รับไปถือ"
-                            totalLabel="ยอดเงินสำรองสุทธิ"
-                            reversePrimarySecondary
-                          />
-                        </div>
-                      )}
-
-                      {p.currencies.length > 0 && p.advanceCurrencies.length > 0 && (
-                        <SummaryTotals
-                          items={mergeBalances(p.currencies, p.advanceCurrencies)}
-                          totalLabel="ยอดสุทธิ"
-                        />
-                      )}
-                    </>
-                  )}
-                </div>
-              ))}
-              </div>
+              perPerson.map((p) => (
+                <SummaryCard
+                  key={p.id}
+                  heading={
+                    <p className="flex min-w-0 items-center gap-2.5 font-semibold text-slate-900">
+                      <MemberAvatar name={p.name} />
+                      <span className="truncate">{p.name}</span>
+                    </p>
+                  }
+                  currencies={p.currencies}
+                  advanceCurrencies={p.advanceCurrencies}
+                  labels={LEDGER_LABELS}
+                />
+              ))
             )}
           </div>
         )}
 
         {tab === "group" && hasGroups && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              {groupSummaries.map((g) => (
-                <div key={g.groupName} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-slate-900 flex items-center gap-1.5">
-                      {g.isGroup ? <Users className="h-4 w-4 text-slate-400" /> : <MemberAvatar name={g.groupName} size="sm" />} {g.groupName}
-                    </p>
-                    <span className="text-xs text-slate-400">{g.memberCount} คน</span>
-                  </div>
-                  {g.currencies.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-slate-500">ค่าใช้จ่ายจริง</span>
-                      </div>
-                      <SummaryRows
-                        items={g.currencies}
-                        paidLabel="จ่ายแทนไปทั้งหมด"
-                        owedLabel="ส่วนแบ่งรวมของกลุ่ม"
-                        totalLabel="ยอดสุทธิกลุ่ม"
-                        showTotal={g.advanceCurrencies.length === 0}
-                      />
-                    </div>
-                  )}
-
-                  {g.advanceCurrencies.length > 0 && (
-                    <div className="mt-4 rounded-xl bg-amber-50 p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-amber-800">เงินสำรอง</span>
-                      </div>
-                      <SummaryRows
-                        items={g.advanceCurrencies}
-                        paidLabel="จ่ายสำรองออกไปก่อน"
-                        owedLabel="เงินสำรองที่รับไปถือ"
-                        totalLabel="ยอดเงินสำรองสุทธิ"
-                        reversePrimarySecondary
-                      />
-                    </div>
-                  )}
-
-                  {g.currencies.length > 0 && g.advanceCurrencies.length > 0 && (
-                    <SummaryTotals
-                      items={mergeBalances(g.currencies, g.advanceCurrencies)}
-                      totalLabel="ยอดสุทธิกลุ่ม"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+          <div className="space-y-3">
+            <SignLegend />
+            {groupSummaries.map((g) => (
+              <SummaryCard
+                key={g.groupName}
+                heading={
+                  <p className="flex min-w-0 items-center gap-1.5 font-semibold text-slate-900">
+                    {g.isGroup ? <Users className="h-4 w-4 shrink-0 text-slate-400" /> : <MemberAvatar name={g.groupName} size="sm" />}
+                    <span className="break-words">{g.groupName}</span>
+                    {g.isGroup && <span className="shrink-0 text-xs font-normal text-slate-400">{g.memberCount} คน</span>}
+                  </p>
+                }
+                currencies={g.currencies}
+                advanceCurrencies={g.advanceCurrencies}
+                labels={LEDGER_LABELS}
+              />
+            ))}
           </div>
         )}
 
@@ -395,7 +387,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
             {settlements.length === 0 && groupSettlements.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-sm text-slate-500">
-                  {perPerson.length === 0 ? "ยังไม่มีรายการ" : "ทุกคนเสมอกัน ไม่มีการโอนเงิน"}
+                  {perPerson.length === 0 ? "ยังไม่มีรายการ" : "ไม่ต้องโอน ทุกคนจ่ายพอดี"}
                 </p>
               </div>
             ) : (
@@ -403,7 +395,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                 {groupSettlements.length > 0 && (
                   <div className="space-y-2">
                     <p className="px-1 text-sm font-semibold text-slate-700">
-                      การโอนเงินระหว่างกลุ่ม ({groupSettlements.length} รายการ)
+                      ต้องโอน {groupSettlements.length} รายการ
                     </p>
                     {groupSettlements.map((s, i) => (
                       <div
@@ -427,7 +419,7 @@ export function ReportClient({ tripId, billBreakdown, perPerson, groupSummaries,
                 {groupSettlements.length === 0 && settlements.length > 0 && (
                   <div className="space-y-2">
                     <p className="px-1 text-sm font-semibold text-slate-700">
-                      การโอนเงินที่ต้องทำ ({settlements.length} รายการ)
+                      ต้องโอน {settlements.length} รายการ
                     </p>
                     {settlements.map((s, i) => (
                       <div
