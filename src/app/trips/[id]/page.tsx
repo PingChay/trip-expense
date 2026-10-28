@@ -3,16 +3,16 @@ import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
 import { fetchMembersWithPromptPay, payerIdByLabel, promptPayByLabel } from "@/lib/members";
-import { computeBalances, computeGroupSettlements } from "@/lib/balance";
+import { computeGroupSettlements } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
-import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider } from "@/components/member-avatar";
 import { avatarColorKey } from "@/lib/avatar";
 import { TransferParties } from "@/components/transfer-parties";
 import { SettlementQr } from "@/components/promptpay-qr";
-import { ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
+import { Check, ChevronRight, LogOut, PlaneTakeoff, Receipt } from "lucide-react";
 
 export default async function TripDashboard({
   params,
@@ -35,20 +35,11 @@ export default async function TripDashboard({
   });
   const expenseBills = normalizedBills.filter((bill) => isExpenseEntry(bill.entryType));
 
-  // group totals and balances by currency
+  // spending totals by currency
   const totalByCurrency = expenseBills.reduce((acc, b) => {
     acc[b.currency] = (acc[b.currency] ?? 0) + b.amount;
     return acc;
   }, {} as Record<string, number>);
-
-  const balanceCurrencies = [...new Set(normalizedBills.map((bill) => bill.currency))];
-  const balancesByCurrency = balanceCurrencies.reduce((acc, currency) => {
-    const currBills = normalizedBills.filter((bill) => bill.currency === currency);
-    acc[currency] = computeBalances(members ?? [], currBills);
-    return acc;
-  }, {} as Record<string, Record<string, number>>);
-
-  const memberMap = Object.fromEntries((members ?? []).map((m) => [m.id, m.name]));
 
   const dateRange =
     trip.start_date && trip.end_date
@@ -164,60 +155,26 @@ export default async function TripDashboard({
           </section>
         )}
 
-        {/* Quick balance */}
-        {memberCount > 0 && normalizedBills.length > 0 ? (
-          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-            <h2 className="px-4 pb-1 pt-4 text-sm font-semibold text-slate-900">ยอดสรุปรายคน</h2>
-            <ul className="divide-y divide-slate-100">
-              {(members ?? []).map((m) => {
-                const currencyBalances = (Object.entries(balancesByCurrency) as Array<[string, Record<string, number>]>)
-                  .map(([currency, bals]) => ({
-                    currency,
-                    bal: Math.round((bals[m.id] ?? 0) * 100) / 100,
-                  }))
-                  .filter((c) => Math.abs(c.bal) >= 0.005);
-                return (
-                  <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <MemberAvatar name={m.name} group={m.group_name} />
-                      <span className="truncate text-sm text-slate-800">{m.name}</span>
-                    </span>
-                    <div className="shrink-0 space-y-0.5 text-right">
-                      {currencyBalances.length === 0 ? (
-                        <span className="text-xs text-slate-400">เสมอกัน</span>
-                      ) : (
-                        currencyBalances.map(({ currency, bal }) => (
-                          <p
-                            key={currency}
-                            className={`text-sm font-semibold tabular-nums ${
-                              bal > 0 ? "text-positive" : "text-negative"
-                            }`}
-                          >
-                            {bal > 0 ? "+" : ""}
-                            {bal.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                            <span className="text-xs font-medium opacity-70">{currency}</span>
-                          </p>
-                        ))
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            <Link
-              href={`/trips/${id}/report`}
-              className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-            >
-              ดูรายละเอียดทั้งหมด
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-            </Link>
-          </section>
-        ) : (
+        {/* Per-person detail lives on the summary page; here only what needs doing */}
+        {normalizedBills.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
             <Receipt className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-3 text-sm font-medium text-slate-700">ยังไม่มีบิล</p>
             <p className="mt-1 text-sm text-slate-500">กดปุ่ม + ด้านล่างเพื่อเพิ่มบิลแรกของทริป</p>
           </section>
+        ) : (
+          settlements.length === 0 && (
+            <Link
+              href={`/trips/${id}/report`}
+              className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgb(15_23_42/0.04)] transition-colors hover:bg-slate-50"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-positive">
+                <Check className="h-4 w-4" strokeWidth={2.75} />
+              </span>
+              <span className="flex-1 text-sm font-medium text-slate-900">ไม่ต้องโอน ทุกคนจ่ายพอดี</span>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </Link>
+          )
         )}
       </div>
       <TripTabBar tripId={id} />
