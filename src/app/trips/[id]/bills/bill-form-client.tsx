@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { Fragment, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
 import { billShares } from "@/lib/balance";
 import { PageHeader, headerIconButton } from "@/components/page-header";
-import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, GroupAvatar, MemberAvatar, useAvatarTint } from "@/components/member-avatar";
 import { avatarColorKey } from "@/lib/avatar";
-import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2, Users } from "lucide-react";
+import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2 } from "lucide-react";
 import type { BillInput } from "@/lib/types";
 
 const fieldLabel = "text-sm font-medium text-slate-700";
@@ -25,6 +25,43 @@ function readLastPayer(tripId: string) {
   } catch {
     return null;
   }
+}
+
+/** One family in the participant picker: a box in the family's colour with a select-all toggle. */
+function FamilyBox({
+  family,
+  count,
+  allSelected,
+  onToggle,
+  children,
+}: {
+  family: string;
+  count: number;
+  allSelected: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const tint = useAvatarTint(family);
+  return (
+    <div className="rounded-2xl border p-2" style={{ backgroundColor: tint.surface, borderColor: tint.edge }}>
+      <div className="flex items-center gap-2 px-2 pb-2 pt-1">
+        <GroupAvatar group={family} />
+        <p className="min-w-0 flex-1 break-words text-sm font-semibold text-slate-900">
+          {family} <span className="text-xs font-medium" style={{ color: tint.color }}>· {count} คน</span>
+        </p>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={allSelected}
+          className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-medium shadow-[0_1px_2px_rgb(15_23_42/0.08)] transition-colors hover:bg-slate-50"
+          style={{ color: tint.color }}
+        >
+          {allSelected ? "ยกเลิกครอบครัว" : "เลือกครอบครัว"}
+        </button>
+      </div>
+      {children}
+    </div>
+  );
 }
 
 interface Member {
@@ -60,6 +97,21 @@ export function BillFormClient({
   // new bills default to whoever paid last on this device; null on the server
   const lastPayer = useSyncExternalStore(noopSubscribe, () => readLastPayer(tripId), () => null);
   const [payerChoice, setPayerChoice] = useState<string | null>(initialData?.payerId ?? null);
+  // "who paid" is chosen per family (any member of it) or per member without a family
+  const payerOptions: { key: string; label: string; family: string | null; memberIds: string[] }[] = [];
+  for (const m of members) {
+    const family = m.group_name?.trim();
+    if (!family) {
+      payerOptions.push({ key: m.id, label: m.name, family: null, memberIds: [m.id] });
+    } else if (!payerOptions.some((option) => option.family === family)) {
+      payerOptions.push({
+        key: `family:${family}`,
+        label: family,
+        family,
+        memberIds: members.filter((other) => other.group_name?.trim() === family).map((other) => other.id),
+      });
+    }
+  }
   const payerId =
     payerChoice ?? (members.some((m) => m.id === lastPayer) ? lastPayer! : members[0]?.id ?? "");
   const [participants, setParticipants] = useState<string[]>(
@@ -238,16 +290,17 @@ export function BillFormClient({
             aria-labelledby="payer-label"
             className="flex flex-wrap gap-2"
           >
-            {members.map((m) => {
-              const selected = payerId === m.id;
+            {payerOptions.map((option) => {
+              const selected = option.memberIds.includes(payerId);
               return (
                 <button
-                  key={m.id}
+                  key={option.key}
                   type="button"
                   role="radio"
                   aria-checked={selected}
                   onClick={() => {
-                    setPayerChoice(m.id);
+                    // a family pays through its first member; keep the stored payer if already in it
+                    if (!selected) setPayerChoice(option.memberIds[0]);
                     setErrors((er) => ({ ...er, payer: undefined }));
                   }}
                   className={[
@@ -257,8 +310,12 @@ export function BillFormClient({
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
                   ].join(" ")}
                 >
-                  <MemberAvatar name={m.name} group={m.group_name} size="sm" />
-                  {m.name}
+                  {option.family ? (
+                    <GroupAvatar group={option.family} />
+                  ) : (
+                    <MemberAvatar name={option.label} size="sm" />
+                  )}
+                  {option.label}
                 </button>
               );
             })}
@@ -314,96 +371,103 @@ export function BillFormClient({
             </span>
           </button>
 
-          {/* Group members for display */}
+          {/* Families in their own colour boxes, members without a family last */}
           {(() => {
-            const UNGROUPED = "__ungrouped__";
-            const grouped = members.reduce((acc, m) => {
-              const key = m.group_name || UNGROUPED;
-              (acc[key] = acc[key] || []).push(m);
-              return acc;
-            }, {} as Record<string, Member[]>);
-            const groupKeys = [
-              ...(grouped[UNGROUPED] ? [UNGROUPED] : []),
-              ...Object.keys(grouped).filter((k) => k !== UNGROUPED).sort(),
-            ];
+            const families = new Map<string, Member[]>();
+            const solo: Member[] = [];
+            for (const m of members) {
+              const family = m.group_name?.trim();
+              if (family) families.set(family, [...(families.get(family) ?? []), m]);
+              else solo.push(m);
+            }
+
+            const renderRow = (m: Member) => {
+                      const checked = participants.includes(m.id);
+              return (
+                <div key={m.id} className="transition-colors hover:bg-slate-50">
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleParticipant(m.id)}
+                      className="size-[18px] shrink-0 rounded"
+                    />
+                    <MemberAvatar name={m.name} group={m.group_name} size="sm" />
+                    <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
+                    {amountNum > 0 && checked && (
+                      <span
+                        className={`text-xs tabular-nums ${personalAmounts[m.id] ? "font-semibold text-slate-900" : "text-slate-500"}`}
+                      >
+                        {formatMoney(shares[m.id] ?? 0)} {currency}
+                      </span>
+                    )}
+                  </label>
+                  {usePersonal && checked && (
+                    <div className="-mt-1 flex items-center gap-2 pb-2.5 pl-[4.25rem] pr-4">
+                      <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">ราคาเฉพาะ</span>
+                      <div className="flex h-9 min-w-0 flex-1 items-center rounded-lg border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.01"
+                          min="0"
+                          placeholder="0"
+                          aria-label={`ราคาเฉพาะของ ${m.name}`}
+                          value={personalInputs[m.id] ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setPersonalInputs((prev) => ({ ...prev, [m.id]: value }));
+                            setErrors((er) => ({ ...er, personal: undefined }));
+                          }}
+                          className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm tabular-nums outline-none placeholder:text-slate-300"
+                        />
+                        <span className="pr-3 text-xs text-slate-400">{currency}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            const rowList = (list: Member[]) => (
+              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white">
+                {list.map((m) => (
+                  <Fragment key={m.id}>{renderRow(m)}</Fragment>
+                ))}
+              </div>
+            );
 
             return (
-              <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
-                {groupKeys.map((groupKey) => (
-                  <div key={groupKey}>
-                    {groupKey !== UNGROUPED && (
-                      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2">
-                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-                          <Users className="h-3.5 w-3.5 text-slate-400" /> {groupKey}
-                        </span>
-                        <button
-                          type="button"
-                          className="rounded-full px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-200/60"
-                          onClick={() => {
-                            const groupIds = grouped[groupKey].map((m) => m.id);
-                            const allSelected = groupIds.every((id) => participants.includes(id));
-                            if (allSelected) {
-                              setParticipants((prev) => prev.filter((id) => !groupIds.includes(id)));
-                            } else {
-                              setParticipants((prev) => [...new Set([...prev, ...groupIds])]);
-                            }
-                          }}
-                        >
-                          {grouped[groupKey].every((m) => participants.includes(m.id))
-                            ? "ยกเลิกกลุ่ม"
-                            : "เลือกกลุ่ม"}
-                        </button>
-                      </div>
-                    )}
-                    {grouped[groupKey].map((m) => {
-                      const checked = participants.includes(m.id);
-                      return (
-                        <div key={m.id} className="transition-colors hover:bg-slate-50">
-                          <label className="flex cursor-pointer items-center gap-3 px-4 py-2.5">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleParticipant(m.id)}
-                              className="size-[18px] shrink-0 rounded"
-                            />
-                            <MemberAvatar name={m.name} group={m.group_name} size="sm" />
-                            <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
-                            {amountNum > 0 && checked && (
-                              <span
-                                className={`text-xs tabular-nums ${personalAmounts[m.id] ? "font-semibold text-slate-900" : "text-slate-500"}`}
-                              >
-                                {formatMoney(shares[m.id] ?? 0)} {currency}
-                              </span>
-                            )}
-                          </label>
-                          {usePersonal && checked && (
-                            <div className="-mt-1 flex items-center gap-2 pb-2.5 pl-[4.25rem] pr-4">
-                              <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">ราคาเฉพาะ</span>
-                              <div className="flex h-9 flex-1 items-center rounded-lg border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
-                                <input
-                                  type="number"
-                                  inputMode="decimal"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="0"
-                                  aria-label={`ราคาเฉพาะของ ${m.name}`}
-                                  value={personalInputs[m.id] ?? ""}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    setPersonalInputs((prev) => ({ ...prev, [m.id]: value }));
-                                    setErrors((er) => ({ ...er, personal: undefined }));
-                                  }}
-                                  className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm tabular-nums outline-none placeholder:text-slate-300"
-                                />
-                                <span className="pr-3 text-xs text-slate-400">{currency}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              <div className="space-y-2">
+                {[...families.entries()].map(([family, familyMembers]) => {
+                  const ids = familyMembers.map((m) => m.id);
+                  const allSelected = ids.every((id) => participants.includes(id));
+                  return (
+                    <FamilyBox
+                      key={family}
+                      family={family}
+                      count={familyMembers.length}
+                      allSelected={allSelected}
+                      onToggle={() => {
+                        setParticipants((prev) =>
+                          allSelected ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]
+                        );
+                        setErrors((er) => ({ ...er, participants: undefined }));
+                      }}
+                    >
+                      {rowList(familyMembers)}
+                    </FamilyBox>
+                  );
+                })}
+                {solo.length > 0 &&
+                  (families.size > 0 ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                      <p className="px-2 pb-2 pt-1 text-xs font-medium text-slate-500">ไม่มีกลุ่ม</p>
+                      {rowList(solo)}
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-slate-200/80">{rowList(solo)}</div>
+                  ))}
               </div>
             );
           })()}
