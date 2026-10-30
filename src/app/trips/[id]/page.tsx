@@ -9,6 +9,7 @@ import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { AvatarColorProvider } from "@/components/member-avatar";
+import { MemberGroups } from "@/components/member-groups";
 import { avatarColorKey } from "@/lib/avatar";
 import { TransferParties } from "@/components/transfer-parties";
 import { SettlementQr } from "@/components/promptpay-qr";
@@ -175,6 +176,25 @@ export default async function TripDashboard({
               <ChevronRight className="h-4 w-4 text-slate-400" />
             </Link>
           )
+        )}
+
+        {/* Who is on the trip, family by family */}
+        {memberCount > 0 && (
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">
+                สมาชิก <span className="font-normal text-slate-400">{memberCount} คน</span>
+              </h2>
+              <Link
+                href={`/trips/${id}/members`}
+                className="-mr-1 inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              >
+                จัดการ
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <MemberGroups members={members ?? []} />
+          </section>
         )}
       </div>
       <TripTabBar tripId={id} />
