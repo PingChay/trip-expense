@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { fetchMembersWithPromptPay, payerIdByLabel, promptPayByLabel } from "@/lib/members";
+import { fetchMembersWithPromptPay, membersByLabel, payerIdByLabel, promptPayByLabel } from "@/lib/members";
 import { computeGroupSettlements } from "@/lib/balance";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
@@ -53,6 +53,9 @@ export default async function TripDashboard({
   const SETTLEMENT_PREVIEW = 3;
   const promptPayTargets = promptPayByLabel(members ?? []);
   const payerIds = payerIdByLabel(members ?? []);
+  // the setup button only makes sense once members.promptpay exists
+  const promptPayEnabled = (members ?? []).some((m) => "promptpay" in m);
+  const candidatesByLabel = membersByLabel(members ?? []);
   const memberCount = (members ?? []).length;
   const billCount = (bills ?? []).length;
 
@@ -139,6 +142,7 @@ export default async function TripDashboard({
                       to={s.toName}
                       amount={s.amount}
                       currency={s.currency}
+                      setupCandidates={promptPayEnabled ? candidatesByLabel[s.toName] : undefined}
                     />
                   </div>
                 </li>

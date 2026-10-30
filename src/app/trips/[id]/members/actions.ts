@@ -43,3 +43,18 @@ export async function deleteMember(memberId: string, tripId: string) {
   revalidatePath(`/trips/${tripId}/members`);
   revalidatePath(`/trips/${tripId}`);
 }
+
+/** Saves only a member's PromptPay ID, e.g. from the "set up QR" button next to a transfer. */
+export async function setMemberPromptPay(tripId: string, memberId: string, promptpay: string) {
+  const id = normalizePromptPay(promptpay);
+  if (!isValidPromptPay(id)) throw new Error("Invalid PromptPay ID");
+  const { error } = await supabase
+    .from("members")
+    .update({ promptpay: id })
+    .eq("id", memberId)
+    .eq("trip_id", tripId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/trips/${tripId}`);
+  revalidatePath(`/trips/${tripId}/report`);
+  revalidatePath(`/trips/${tripId}/members`);
+}

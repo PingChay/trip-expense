@@ -72,6 +72,8 @@ interface Props {
   groupSettlements: GroupSettlement[];
   promptPayTargets: Record<string, PromptPayTarget>;
   payerIds: Record<string, string>;
+  /** members behind each settlement label; null until the promptpay column exists */
+  setupCandidates: Record<string, Array<{ id: string; name: string }>> | null;
 }
 
 type Tab = "breakdown" | "person" | "group" | "settlement";
@@ -248,6 +250,7 @@ export function ReportClient({
   groupSettlements,
   promptPayTargets,
   payerIds,
+  setupCandidates,
 }: Props) {
   const hasGroups = groupSummaries.length > 0;
   // bill rows only carry names; groupName is the member's group label when the trip has groups
@@ -428,6 +431,7 @@ export function ReportClient({
                             to={s.toName}
                             amount={s.amount}
                             currency={s.currency}
+                            setupCandidates={setupCandidates?.[s.toName]}
                           />
                         </div>
                       </div>
@@ -458,6 +462,7 @@ export function ReportClient({
                             to={s.toName}
                             amount={s.amount}
                             currency={s.currency}
+                            setupCandidates={setupCandidates?.[s.toName]}
                           />
                         </div>
                       </div>

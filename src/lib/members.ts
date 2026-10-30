@@ -56,3 +56,15 @@ export function payerIdByLabel(members: Array<{ id: string; name: string; group_
   }
   return ids;
 }
+
+/** Members behind each settlement label: the member with that name, or everyone in that group. */
+export function membersByLabel(members: Array<{ id: string; name: string; group_name?: string | null }>) {
+  const byLabel: Record<string, Array<{ id: string; name: string }>> = {};
+  for (const member of members) {
+    const entry = { id: member.id, name: member.name };
+    (byLabel[member.name] ??= []).push(entry);
+    const group = member.group_name?.trim();
+    if (group) (byLabel[group] ??= []).push(entry);
+  }
+  return byLabel;
+}

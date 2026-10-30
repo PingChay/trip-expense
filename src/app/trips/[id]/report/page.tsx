@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { fetchMembersWithPromptPay, payerIdByLabel, promptPayByLabel } from "@/lib/members";
+import { fetchMembersWithPromptPay, membersByLabel, payerIdByLabel, promptPayByLabel } from "@/lib/members";
 import { billShares, computeGroupSettlements, computeSettlementMultiCurrency } from "@/lib/balance";
 import { ReportClient } from "./report-client";
 
@@ -150,6 +150,7 @@ export default async function ReportPage({
       groupSettlements={groupSettlements}
       promptPayTargets={promptPayByLabel(members ?? [])}
       payerIds={payerIdByLabel(members ?? [])}
+      setupCandidates={(members ?? []).some((m) => "promptpay" in m) ? membersByLabel(members ?? []) : null}
     />
   );
 }
