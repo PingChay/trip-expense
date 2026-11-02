@@ -262,8 +262,8 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
               groupKey !== UNGROUPED && (
                 <span className="flex items-center gap-2">
                   <GroupAvatar group={groupKey} />
-                  <span className="font-semibold text-label">{groupKey}</span>
-                  <span>· {grouped[groupKey].length} คน</span>
+                  <span className="min-w-0 break-words font-semibold text-label">{groupKey}</span>
+                  <span className="shrink-0">· {grouped[groupKey].length} คน</span>
                 </span>
               )
             }

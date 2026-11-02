@@ -38,9 +38,10 @@ export function Section({
   return (
     <section className={className}>
       {(header || action) && (
-        <div className="flex min-h-7 items-end justify-between gap-3 px-4 pb-1.5">
+        // when both don't fit on one line the action drops below, still at the trailing edge
+        <div className="flex min-h-7 flex-wrap items-end justify-between gap-x-3 gap-y-0.5 px-4 pb-1.5">
           {header && <h2 className="min-w-0 text-footnote text-label-2">{header}</h2>}
-          {action}
+          {action && <div className="ml-auto shrink-0">{action}</div>}
         </div>
       )}
       <Group

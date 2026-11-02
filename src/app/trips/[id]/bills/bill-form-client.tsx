@@ -49,8 +49,8 @@ function FamilySection({
       header={
         <span className="flex items-center gap-2">
           <GroupAvatar group={family} />
-          <span className="break-words font-semibold text-label">{family}</span>
-          <span>· {count} คน</span>
+          <span className="min-w-0 break-words font-semibold text-label">{family}</span>
+          <span className="shrink-0">· {count} คน</span>
         </span>
       }
       action={
@@ -325,9 +325,9 @@ export function BillFormClient({
 
         {/* Participants */}
         <div className="space-y-4">
-          <div className="flex items-end justify-between gap-3 px-4">
+          <div className="flex flex-wrap items-end justify-between gap-x-3 px-4">
             <h2 className="text-footnote text-label-2">ผู้ร่วมหาร · เลือก {selectedCount} จาก {members.length} คน</h2>
-            <div className="-mb-1 -mr-2 flex items-center">
+            <div className="-mb-1 -mr-2 ml-auto flex shrink-0 items-center whitespace-nowrap">
               <button
                 type="button"
                 onClick={() => setParticipants(members.map((m) => m.id))}
