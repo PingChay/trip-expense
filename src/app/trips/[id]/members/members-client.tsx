@@ -24,6 +24,8 @@ interface Props {
 const UNGROUPED = "__ungrouped__";
 // list max-h-44 (176px) + margin and border
 const MENU_HEIGHT = 190;
+// a grouped section clips its rows to the rounded corners; let an open group menu spill out
+const MENU_HOST = "has-[[data-group-menu]]:overflow-visible";
 
 interface GroupInputProps extends Omit<React.ComponentProps<typeof Input>, "onChange" | "onSelect"> {
   open: boolean;
@@ -96,7 +98,7 @@ function GroupInput({
       </button>
       {/* iOS pull-down menu */}
       {open && (
-        <div className={`material absolute right-0 z-30 w-60 max-w-full overflow-hidden rounded-[0.875rem] shadow-[0_10px_40px_-8px_rgb(0_0_0/0.3)] ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}>
+        <div data-group-menu className={`material absolute right-0 z-30 w-60 max-w-full overflow-hidden rounded-[0.875rem] shadow-[0_10px_40px_-8px_rgb(0_0_0/0.3)] ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}>
           {options.length > 0 ? (
             <ul className="ios-list max-h-44 overflow-y-auto">
               {options.map((option) => (
@@ -255,6 +257,7 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
             key={groupKey}
             as="ul"
             inset={AVATAR_INSET}
+            groupClassName={MENU_HOST}
             header={
               groupKey !== UNGROUPED && (
                 <span className="flex items-center gap-2">
@@ -384,6 +387,7 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
         {/* Add member */}
         <Section
           header="เพิ่มสมาชิก"
+          groupClassName={MENU_HOST}
           footer={error && !editingId ? <p role="alert" className="text-negative">{error}</p> : "ใส่กลุ่มเดียวกันให้คนในครอบครัว เพื่อหารและสรุปยอดเป็นครอบครัว"}
         >
           <div className={`${row} py-0 pr-2`}>
