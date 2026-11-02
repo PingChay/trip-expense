@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Copy, Share } from "lucide-react";
 
 const pill =
-  "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60";
+  "inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-subhead font-semibold transition-[background-color,color,transform] duration-150 active:scale-95 focus-visible:outline-white";
 
 const noopSubscribe = () => () => {};
 
@@ -43,14 +43,14 @@ export function ShareButton({ tripId }: { tripId: string }) {
       <button
         type="button"
         onClick={handleCopy}
-        className={`${pill} ${copied ? "bg-emerald-400/20 text-emerald-200" : "bg-white text-slate-900 hover:bg-slate-100"}`}
+        className={`${pill} ${copied ? "bg-green text-white" : "bg-white text-black"}`}
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="size-4" strokeWidth={2.75} /> : <Copy className="size-4" />}
         <span aria-live="polite">{copied ? "คัดลอกลิงก์แล้ว" : "คัดลอกลิงก์"}</span>
       </button>
       {canShare && (
-        <button type="button" onClick={handleShare} className={`${pill} bg-white/10 text-white hover:bg-white/15`}>
-          <Share2 className="h-3.5 w-3.5" />
+        <button type="button" onClick={handleShare} className={`${pill} bg-white/15 text-white`}>
+          <Share className="size-4" />
           แชร์
         </button>
       )}

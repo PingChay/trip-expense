@@ -1,10 +1,13 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from "react";
 import { Users } from "lucide-react";
 
-/** backgroundColor/color style an avatar; surface/edge tint a larger area in the same hue. */
-type Tint = { backgroundColor: string; color: string; surface: string; edge: string };
+/**
+ * A family's colour is only its hue; globals.css turns it into an avatar fill and an ink
+ * for light and dark appearance (bg-hue-avatar, text-hue-ink).
+ */
+type Tint = { hue: number; style: CSSProperties };
 
 /**
  * The n-th colour of a trip. Hues step by the golden angle, so every new key lands
@@ -12,12 +15,7 @@ type Tint = { backgroundColor: string; color: string; surface: string; edge: str
  */
 function tintAt(index: number): Tint {
   const hue = (225 + index * 137.508) % 360;
-  return {
-    backgroundColor: `oklch(0.93 0.055 ${hue})`,
-    color: `oklch(0.42 0.11 ${hue})`,
-    surface: `oklch(0.975 0.018 ${hue})`,
-    edge: `oklch(0.9 0.04 ${hue})`,
-  };
+  return { hue, style: { "--hue": hue } as CSSProperties };
 }
 
 // Thai leading vowels sit before the consonant they belong to, so keep both.
@@ -56,11 +54,16 @@ export function AvatarColorProvider({ keys, children }: { keys: string[]; childr
   return <AvatarColorContext.Provider value={colors}>{children}</AvatarColorContext.Provider>;
 }
 
-
 export function useAvatarTint(key: string) {
   const colors = useContext(AvatarColorContext);
   return colors?.get(key.trim()) ?? hashTint(key.trim());
 }
+
+const sizes = {
+  sm: "size-6 text-caption2",
+  md: "size-8 text-footnote",
+  lg: "size-10 text-subhead",
+} as const;
 
 /** Members of a group share their group's colour, so a family reads as one at a glance. */
 export function MemberAvatar({
@@ -70,17 +73,14 @@ export function MemberAvatar({
 }: {
   name: string;
   group?: string | null;
-  size?: "sm" | "md";
+  size?: keyof typeof sizes;
 }) {
   const tint = useAvatarTint(group?.trim() || name);
   return (
     <span
       aria-hidden
-      className={[
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold",
-        size === "sm" ? "size-6 text-[11px]" : "size-8 text-[13px]",
-      ].join(" ")}
-      style={{ backgroundColor: tint.backgroundColor, color: tint.color }}
+      className={`inline-flex shrink-0 select-none items-center justify-center rounded-full bg-hue-avatar font-semibold text-hue-ink ${sizes[size]}`}
+      style={tint.style}
     >
       {initial(name)}
     </span>
@@ -88,18 +88,15 @@ export function MemberAvatar({
 }
 
 /** A whole group, in the same colour its members carry. */
-export function GroupAvatar({ group, size = "sm" }: { group: string; size?: "sm" | "md" }) {
+export function GroupAvatar({ group, size = "sm" }: { group: string; size?: keyof typeof sizes }) {
   const tint = useAvatarTint(group);
   return (
     <span
       aria-hidden
-      className={[
-        "inline-flex shrink-0 items-center justify-center rounded-full",
-        size === "sm" ? "size-6" : "size-8",
-      ].join(" ")}
-      style={{ backgroundColor: tint.backgroundColor, color: tint.color }}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-hue-avatar text-hue-ink ${sizes[size]}`}
+      style={tint.style}
     >
-      <Users className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+      <Users className={size === "sm" ? "size-3.5" : size === "md" ? "size-4" : "size-5"} strokeWidth={2.25} />
     </span>
   );
 }

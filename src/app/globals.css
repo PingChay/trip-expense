@@ -2,143 +2,281 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-anuphan), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-anuphan), ui-sans-serif, system-ui, sans-serif;
-  --color-positive: var(--positive);
-  --color-negative: var(--negative);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* iOS system font: SF Pro on Apple devices, with the phone's own Thai face */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Sukhumvit Set", "Thonburi",
+    "Noto Sans Thai", "Leelawadee UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* iOS text styles at the default Dynamic Type size; Thai stacks marks, so lines run a little taller */
+  --text-large-title: 2.125rem;
+  --text-large-title--line-height: 1.2;
+  --text-title1: 1.75rem;
+  --text-title1--line-height: 1.22;
+  --text-title2: 1.375rem;
+  --text-title2--line-height: 1.27;
+  --text-title3: 1.25rem;
+  --text-title3--line-height: 1.3;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.35;
+  --text-callout: 1rem;
+  --text-callout--line-height: 1.35;
+  --text-subhead: 0.9375rem;
+  --text-subhead--line-height: 1.38;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.4;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.35;
+  --text-caption2: 0.6875rem;
+  --text-caption2--line-height: 1.3;
+
+  --color-grouped: var(--ios-grouped);
+  --color-cell: var(--ios-cell);
+  --color-elevated: var(--ios-elevated);
+  --color-label: var(--ios-label);
+  --color-label-2: var(--ios-label-2);
+  --color-label-3: var(--ios-label-3);
+  --color-separator: var(--ios-separator);
+  --color-fill: var(--ios-fill);
+  --color-fill-2: var(--ios-fill-2);
+  --color-fill-3: var(--ios-fill-3);
+  --color-pressed: var(--ios-pressed);
+  --color-tint: var(--ios-tint);
+  --color-green: var(--ios-green);
+  --color-red: var(--ios-red);
+  --color-orange: var(--ios-orange);
+  --color-orange-ink: var(--ios-orange-ink);
+  --color-positive: var(--ios-positive);
+  --color-negative: var(--ios-negative);
+  --color-pass: var(--ios-pass);
+  --color-pass-label: var(--ios-pass-label);
+
+  /* family colours: the element sets --hue, the appearance sets lightness and chroma */
+  --color-hue-avatar: oklch(var(--hue-avatar-l) var(--hue-avatar-c) var(--hue));
+  --color-hue-ink: oklch(var(--hue-ink-l) var(--hue-ink-c) var(--hue));
+
+  --radius-group: 1.25rem;
+
+  /* shadcn primitives read these */
+  --color-background: var(--ios-grouped);
+  --color-foreground: var(--ios-label);
+  --color-card: var(--ios-cell);
+  --color-card-foreground: var(--ios-label);
+  --color-popover: var(--ios-elevated);
+  --color-popover-foreground: var(--ios-label);
+  --color-primary: var(--ios-tint);
+  --color-primary-foreground: #fff;
+  --color-secondary: var(--ios-fill-3);
+  --color-secondary-foreground: var(--ios-tint);
+  --color-muted: var(--ios-fill-3);
+  --color-muted-foreground: var(--ios-label-2);
+  --color-accent: var(--ios-fill-3);
+  --color-accent-foreground: var(--ios-label);
+  --color-destructive: var(--ios-red);
+  --color-border: var(--ios-separator);
+  --color-input: var(--ios-fill-3);
+  --color-ring: var(--ios-tint);
 }
 
 :root {
-  --background: oklch(0.968 0.007 247.9);
-  --foreground: oklch(0.208 0.042 265.8);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.208 0.042 265.8);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.208 0.042 265.8);
-  --primary: oklch(0.208 0.042 265.8);
-  --primary-foreground: oklch(0.984 0.003 247.9);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.919 0.012 254.6);
-  --input: oklch(0.885 0.016 254.6);
-  --ring: oklch(0.554 0.046 257.4);
-  --positive: oklch(0.527 0.137 150.1);
-  --negative: oklch(0.577 0.215 22.2);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: light dark;
+
+  --ios-grouped: #f2f2f7;
+  --ios-cell: #ffffff;
+  --ios-elevated: #ffffff;
+  --ios-label: #000000;
+  /* secondaryLabel darkened to Apple's web grey so small text clears 4.5:1 */
+  --ios-label-2: #6e6e73;
+  --ios-label-3: rgb(60 60 67 / 0.6);
+  --ios-separator: rgb(60 60 67 / 0.29);
+  --ios-fill: rgb(120 120 128 / 0.2);
+  --ios-fill-2: rgb(120 120 128 / 0.16);
+  --ios-fill-3: rgb(118 118 128 / 0.12);
+  --ios-pressed: #e5e5ea;
+  --ios-tint: #007aff;
+  --ios-green: #34c759;
+  --ios-red: #ff3b30;
+  --ios-orange: #ff9500;
+  --ios-orange-ink: #c93400;
+  /* money direction as text: the increased-contrast system green and red */
+  --ios-positive: #248a3d;
+  --ios-negative: #d70015;
+  --ios-pass: #1c1c1e;
+  --ios-pass-label: rgb(235 235 245 / 0.6);
+
+  --hue-avatar-l: 0.92;
+  --hue-avatar-c: 0.06;
+  --hue-ink-l: 0.42;
+  --hue-ink-c: 0.11;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ios-grouped: #000000;
+    --ios-cell: #1c1c1e;
+    --ios-elevated: #1c1c1e;
+    --ios-label: #ffffff;
+    --ios-label-2: rgb(235 235 245 / 0.6);
+    /* raised from iOS's 0.3 so chevrons and arrows clear 3:1 on cells */
+    --ios-label-3: rgb(235 235 245 / 0.45);
+    --ios-separator: rgb(84 84 88 / 0.65);
+    --ios-fill: rgb(120 120 128 / 0.36);
+    --ios-fill-2: rgb(120 120 128 / 0.32);
+    --ios-fill-3: rgb(118 118 128 / 0.24);
+    --ios-pressed: #2c2c2e;
+    --ios-tint: #0a84ff;
+    --ios-green: #30d158;
+    --ios-red: #ff453a;
+    --ios-orange: #ff9f0a;
+    --ios-orange-ink: #ffb340;
+    --ios-positive: #30d158;
+    --ios-negative: #ff6961;
+    --ios-pass: #2c2c2e;
+
+    --hue-avatar-l: 0.36;
+    --hue-avatar-c: 0.07;
+    --hue-ink-l: 0.88;
+    --hue-ink-c: 0.08;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-    caret-color: var(--primary);
-    -webkit-tap-highlight-color: transparent;
+    @apply border-separator outline-tint;
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.8 0.02 255) transparent;
+    scrollbar-color: var(--ios-label-3) transparent;
+  }
+  body {
+    @apply bg-grouped text-body text-label;
+    caret-color: var(--ios-tint);
+    -webkit-tap-highlight-color: transparent;
   }
   ::selection {
-    background: oklch(0.208 0.042 265.8 / 0.14);
+    background: color-mix(in srgb, var(--ios-tint) 28%, transparent);
   }
-  input[type="checkbox"] {
-    accent-color: var(--primary);
+  :focus-visible {
+    outline: 2px solid var(--ios-tint);
+    outline-offset: 2px;
+  }
+  ::placeholder {
+    color: var(--ios-label-2);
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: center;
+  }
+}
+
+@layer components {
+  /* inset grouped list: hairline separators start at the text edge, never under the last row */
+  .ios-list > * + * {
+    position: relative;
+  }
+  .ios-list > * + *::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--separator-inset, 1rem);
+    height: 1px;
+    transform: scaleY(0.5);
+    transform-origin: top;
+    background: var(--ios-separator);
+    pointer-events: none;
+  }
+
+  /* system material behind bars and floating controls */
+  .material {
+    background: color-mix(in srgb, var(--ios-cell) 72%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .material-bar {
+    background: color-mix(in srgb, var(--ios-grouped) 78%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .glass {
+    background: color-mix(in srgb, var(--ios-cell) 78%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    box-shadow:
+      0 2px 10px -2px rgb(0 0 0 / 0.12),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--ios-label) 8%, transparent);
+  }
+
+  /* iOS multi-select: an empty ring that fills with the tint and a check */
+  .ios-check {
+    appearance: none;
+    flex-shrink: 0;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 9999px;
+    border: 1.5px solid var(--ios-label-3);
+    background: transparent center / 0.875rem no-repeat;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .ios-check:checked {
+    border-color: var(--ios-tint);
+    background-color: var(--ios-tint);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+
+  /* bottom sheet: floats above the home indicator, rises like a UISheet */
+  .sheet {
+    margin: auto 0.5rem calc(env(safe-area-inset-bottom) + 0.5rem);
+    width: calc(100% - 1rem);
+    max-width: none;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 2.5rem);
+    border-radius: 2rem;
+    background: var(--ios-elevated);
+    color: var(--ios-label);
+    padding: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    box-shadow: 0 -8px 40px -12px rgb(0 0 0 / 0.35);
+  }
+  .sheet[open] {
+    animation: sheet-in 420ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet::backdrop {
+    background: rgb(0 0 0 / 0.32);
+    animation: backdrop-in 300ms ease-out;
+  }
+  @media (min-width: 640px) {
+    .sheet {
+      margin: auto;
+      width: 24rem;
+    }
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: backdrop-in 200ms ease-out;
   }
 }

@@ -2,10 +2,10 @@
 
 import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, X, Pencil, Check, LoaderCircle } from "lucide-react";
-import { PageHeader, headerIconButton } from "@/components/page-header";
+import { Plus, MinusCircle, LoaderCircle } from "lucide-react";
+import { PageHeader, headerProminentButton, headerTextButton } from "@/components/page-header";
+import { AVATAR_INSET, Section, row } from "@/components/ui/grouped";
 import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
 import { createTrip } from "./actions";
 
@@ -72,120 +72,142 @@ export default function NewTripPage() {
 
   return (
     <AvatarColorProvider keys={members}>
-    <div className="min-h-screen">
+    <form onSubmit={handleSubmit} className="min-h-screen">
       <PageHeader
-        title="สร้างทริปใหม่"
+        title="ทริปใหม่"
         left={
-          <button type="button" onClick={() => router.push("/")} aria-label="ย้อนกลับ" className={headerIconButton}>
-            <ArrowLeft className="h-5 w-5" />
+          <button type="button" onClick={() => router.push("/")} className={headerTextButton}>
+            ยกเลิก
+          </button>
+        }
+        right={
+          <button type="submit" disabled={isPending || !name.trim()} className={headerProminentButton}>
+            {isPending && <LoaderCircle className="size-4 animate-spin" />}
+            {isPending ? "กำลังสร้าง" : "สร้าง"}
           </button>
         }
       />
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pb-10 pt-5">
+      <div className="mx-auto max-w-md space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-3">
         {/* Trip name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">ชื่อทริป *</label>
-          <Input
-            placeholder="เช่น เชียงใหม่ มี.ค. 68"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (e.target.value.trim()) setErrors((er) => ({ ...er, name: undefined }));
-            }}
-            className="h-12 rounded-xl bg-white px-3.5 text-[15px]"
-          />
-          {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-        </div>
+        <Section header="ชื่อทริป" footer={errors.name && <p className="text-negative">{errors.name}</p>}>
+          <div className={`${row} py-0`}>
+            <Input
+              placeholder="เช่น เชียงใหม่ มี.ค. 68"
+              aria-label="ชื่อทริป"
+              aria-invalid={!!errors.name}
+              autoFocus
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (e.target.value.trim()) setErrors((er) => ({ ...er, name: undefined }));
+              }}
+              className="h-12 rounded-none bg-transparent px-0 focus-visible:ring-0 aria-invalid:ring-0"
+            />
+          </div>
+        </Section>
 
         {/* Date range */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">วันที่เดินทาง (ไม่บังคับ)</label>
-          <div className="flex gap-2 items-center">
-            <Input
+        <Section header="วันที่เดินทาง (ไม่บังคับ)">
+          <label className={`${row} justify-between`}>
+            <span>เริ่ม</span>
+            <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
+              className="h-9 min-w-[9rem] rounded-lg bg-fill-3 px-3 text-body text-label outline-none focus-visible:ring-2 focus-visible:ring-tint/40"
             />
-            <span className="text-slate-400 text-sm shrink-0">ถึง</span>
-            <Input
+          </label>
+          <label className={`${row} justify-between`}>
+            <span>ถึง</span>
+            <input
               type="date"
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
+              className="h-9 min-w-[9rem] rounded-lg bg-fill-3 px-3 text-body text-label outline-none focus-visible:ring-2 focus-visible:ring-tint/40"
             />
-          </div>
-        </div>
+          </label>
+        </Section>
 
         {/* Members */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">
-            ผู้เข้าร่วม *
-            {members.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-slate-500">{members.length} คน</span>
-            )}
-          </label>
+        <Section
+          as="ul"
+          inset={AVATAR_INSET}
+          header={`ผู้เข้าร่วม${members.length > 0 ? ` · ${members.length} คน` : ""}`}
+          footer={
+            errors.duplicate || errors.members ? (
+              <p className="text-negative">{errors.duplicate ?? errors.members}</p>
+            ) : (
+              "แตะชื่อเพื่อแก้ไข จัดกลุ่มครอบครัวได้ในหน้าสมาชิกหลังสร้างทริป"
+            )
+          }
+        >
+          {members.map((m, idx) => (
+            <li key={idx} className={`${row} py-0`}>
+              {editingIdx === idx ? (
+                <>
+                  <MemberAvatar name={editValue || m} />
+                  <Input
+                    autoFocus
+                    aria-label={`แก้ไขชื่อ ${m}`}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => saveEdit(idx)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); saveEdit(idx); }
+                      if (e.key === "Escape") setEditingIdx(null);
+                    }}
+                    className="h-11 flex-1 rounded-none bg-transparent px-0 focus-visible:ring-0"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => saveEdit(idx)}
+                    className="h-9 shrink-0 rounded-full px-2 text-body font-semibold text-tint active:opacity-60"
+                  >
+                    เสร็จ
+                  </button>
+                </>
+              ) : (
+                <>
+                  <MemberAvatar name={m} />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(idx)}
+                    aria-label={`แก้ไข ${m}`}
+                    className="flex min-h-11 min-w-0 flex-1 items-center text-left"
+                  >
+                    <span className="truncate">{m}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteMember(idx)}
+                    aria-label={`ลบ ${m}`}
+                    className="-mr-2 flex size-11 shrink-0 items-center justify-center text-red active:opacity-60"
+                  >
+                    <MinusCircle className="size-[22px]" fill="currentColor" stroke="white" strokeWidth={2} />
+                  </button>
+                </>
+              )}
+            </li>
+          ))}
 
-          {/* Member list */}
-          {members.length > 0 && (
-            <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-              {members.map((m, idx) => (
-                <li key={idx} className="flex items-center gap-2 px-3 py-2">
-                  {editingIdx === idx ? (
-                    <>
-                      <Input
-                        autoFocus
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); saveEdit(idx); }
-                          if (e.key === "Escape") setEditingIdx(null);
-                        }}
-                        className="h-9 flex-1 rounded-lg bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => saveEdit(idx)}
-                        aria-label="บันทึก"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <MemberAvatar name={m} />
-                      <span className="ml-1 min-w-0 flex-1 truncate text-sm text-slate-900">{m}</span>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(idx)}
-                        aria-label={`แก้ไข ${m}`}
-                        className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteMember(idx)}
-                        aria-label={`ลบ ${m}`}
-                        className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Add member input */}
-          <div className="flex gap-2">
+          {/* Add member */}
+          <li className={`${row} py-0 pr-2`}>
+            <button
+              type="button"
+              onClick={addMember}
+              aria-label="เพิ่มผู้เข้าร่วม"
+              disabled={!newMember.trim()}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green text-white transition-opacity disabled:bg-fill disabled:text-label-3"
+            >
+              <Plus className="size-5" strokeWidth={3} />
+            </button>
             <Input
               ref={newMemberRef}
-              placeholder="ชื่อผู้เข้าร่วม"
+              placeholder="เพิ่มชื่อผู้เข้าร่วม"
+              aria-label="ชื่อผู้เข้าร่วม"
               value={newMember}
               onChange={(e) => {
                 setNewMember(e.target.value);
@@ -194,33 +216,12 @@ export default function NewTripPage() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") { e.preventDefault(); addMember(); }
               }}
-              className="h-12 flex-1 rounded-xl bg-white px-3 text-[15px]"
+              className="h-12 flex-1 rounded-none bg-transparent px-0 focus-visible:ring-0"
             />
-            <Button type="button" variant="outline" onClick={addMember} aria-label="เพิ่มผู้เข้าร่วม" className="h-12 w-12 shrink-0 rounded-xl bg-white p-0">
-              <Plus className="h-5 w-5" />
-            </Button>
-          </div>
-          {errors.duplicate && <p className="text-xs text-destructive">{errors.duplicate}</p>}
-          {errors.members && <p className="text-xs text-destructive">{errors.members}</p>}
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 flex-1 rounded-xl bg-white text-[15px]"
-            onClick={() => router.push("/")}
-          >
-            ยกเลิก
-          </Button>
-          <Button type="submit" className="h-12 flex-1 rounded-xl text-[15px]" disabled={isPending}>
-            {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
-            {isPending ? "กำลังสร้าง..." : "สร้างทริป"}
-          </Button>
-        </div>
-      </form>
-    </div>
+          </li>
+        </Section>
+      </div>
+    </form>
     </AvatarColorProvider>
   );
 }

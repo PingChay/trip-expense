@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
-import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
+import { AVATAR_INSET, Disclosure, Section, pressableRow, row } from "@/components/ui/grouped";
 import { avatarColorKey } from "@/lib/avatar";
-import { Plus, X, Pencil, Check, Users, ChevronDown, QrCode } from "lucide-react";
+import { Plus, Users, ChevronsUpDown, QrCode } from "lucide-react";
 import { formatPromptPay, isValidPromptPay, normalizePromptPay } from "@/lib/promptpay";
 import { addMember, updateMember, deleteMember } from "./actions";
 
@@ -83,36 +83,37 @@ function GroupInput({
         {...props}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={["pr-10", className].filter(Boolean).join(" ")}
+        className={["pr-11", className].filter(Boolean).join(" ")}
       />
       <button
         type="button"
         onClick={handleToggle}
         aria-label="เลือกกลุ่ม"
         aria-expanded={open}
-        className="absolute inset-y-1 right-1 flex w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-tint active:opacity-60"
       >
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronsUpDown className="size-4" strokeWidth={2.5} />
       </button>
+      {/* iOS pull-down menu */}
       {open && (
-        <div className={`absolute left-0 right-0 z-30 overflow-hidden ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}  rounded-xl border border-slate-200 bg-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.3)]`}>
+        <div className={`material absolute right-0 z-30 w-60 max-w-full overflow-hidden rounded-[0.875rem] shadow-[0_10px_40px_-8px_rgb(0_0_0/0.3)] ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}>
           {options.length > 0 ? (
-            <ul className="max-h-44 overflow-y-auto py-1">
+            <ul className="ios-list max-h-44 overflow-y-auto">
               {options.map((option) => (
                 <li key={option}>
                   <button
                     type="button"
                     onClick={() => onOptionSelect(option)}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-body text-label transition-colors active:bg-fill-2"
                   >
-                    <Users className="h-3.5 w-3.5 text-slate-400" />
                     {option}
+                    <Users className="size-[18px] shrink-0 text-label" />
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="px-3 py-2 text-sm text-slate-400">ยังไม่มีกลุ่มให้เลือก</p>
+            <p className="px-4 py-3 text-subhead text-label-2">ยังไม่มีกลุ่มให้เลือก</p>
           )}
         </div>
       )}
@@ -239,158 +240,175 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
     ...Object.keys(grouped).filter((k) => k !== UNGROUPED).sort(),
   ];
 
-  const rowButton =
-    "flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700";
+  // a borderless field filling a grouped row
+  const rowField = "h-11 rounded-none bg-transparent px-0 text-body focus-visible:ring-0";
 
   return (
     <AvatarColorProvider keys={members.map(avatarColorKey)}>
     <div className="min-h-screen">
-      <PageHeader title="สมาชิก" subtitle={members.length > 0 ? `${members.length} คน` : undefined} />
+      <PageHeader large title="สมาชิก" subtitle={members.length > 0 ? `${members.length} คน` : undefined} />
 
-      <div className="mx-auto max-w-sm space-y-5 px-4 pb-32 pt-5">
+      <div className="mx-auto max-w-md space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-3">
         {/* Grouped member list */}
         {groupKeys.map((groupKey) => (
-          <section key={groupKey} className="space-y-2">
-            {groupKey !== UNGROUPED && (
-              <h2 className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-700">
-                <Users className="h-4 w-4 text-slate-400" />
-                {groupKey}
-                <span className="font-normal text-slate-400">· {grouped[groupKey].length} คน</span>
-              </h2>
-            )}
-            <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-              {grouped[groupKey].map((m) => (
-                <li key={m.id} className="px-4 py-2.5">
-                  {editingId === m.id ? (
-                    <div className="space-y-2 py-1">
+          <Section
+            key={groupKey}
+            as="ul"
+            inset={AVATAR_INSET}
+            header={
+              groupKey !== UNGROUPED && (
+                <span className="flex items-center gap-2">
+                  <GroupAvatar group={groupKey} />
+                  <span className="font-semibold text-label">{groupKey}</span>
+                  <span>· {grouped[groupKey].length} คน</span>
+                </span>
+              )
+            }
+          >
+            {grouped[groupKey].map((m) =>
+              editingId === m.id ? (
+                <li key={m.id} className="ios-list bg-cell">
+                  <div className={row}>
+                    <MemberAvatar name={editName || m.name} group={editGroup || null} />
+                    <Input
+                      autoFocus
+                      placeholder="ชื่อ"
+                      aria-label="ชื่อ"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditingId(null);
+                        if (e.key === "Enter") handleSaveEdit(m.id);
+                      }}
+                      className={`${rowField} font-medium`}
+                    />
+                  </div>
+                  {promptPayEnabled && (
+                    <div className={`${row} py-0 pl-[3.75rem]`}>
+                      <QrCode className="size-[18px] shrink-0 text-label-2" />
                       <Input
-                        autoFocus
-                        placeholder="ชื่อ"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setEditingId(null);
+                        inputMode="numeric"
+                        placeholder="เบอร์พร้อมเพย์ (ไม่บังคับ)"
+                        aria-label="พร้อมเพย์"
+                        value={editPromptPay}
+                        onChange={(e) => {
+                          setEditPromptPay(e.target.value);
+                          setError(null);
                         }}
-                        className="h-10 rounded-lg bg-white"
+                        className={`${rowField} tabular-nums`}
                       />
-                      {promptPayEnabled && (
-                        <div className="relative">
-                          <QrCode className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                          <Input
-                            inputMode="numeric"
-                            placeholder="พร้อมเพย์ เบอร์โทร/เลขบัตร (ไม่บังคับ)"
-                            aria-label="พร้อมเพย์"
-                            value={editPromptPay}
-                            onChange={(e) => {
-                              setEditPromptPay(e.target.value);
-                              setError(null);
-                            }}
-                            className="h-10 rounded-lg bg-white pl-9 text-sm tabular-nums"
-                          />
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <GroupInput
-                          placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
-                          value={editGroup}
-                          onChange={setEditGroup}
-                          open={isEditGroupOpen}
-                          options={existingGroups.filter((group) => group !== editGroup)}
-                          onToggle={() => setIsEditGroupOpen((prev) => !prev)}
-                          onClose={closeEditGroup}
-                          onOptionSelect={(group) => {
-                            setEditGroup(group);
-                            setIsEditGroupOpen(false);
-                          }}
-                          className="h-10 rounded-lg bg-white text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleSaveEdit(m.id)}
-                          aria-label="บันทึก"
-                          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white transition-colors hover:bg-slate-800"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                          aria-label="ยกเลิก"
-                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <MemberAvatar name={m.name} group={m.group_name} />
-                      <div className="ml-1 min-w-0 flex-1">
-                        <p className="truncate text-sm text-slate-900">{m.name}</p>
-                        {m.promptpay && (
-                          <p className="flex items-center gap-1 text-xs tabular-nums text-slate-500">
-                            <QrCode className="h-3 w-3" />
-                            {formatPromptPay(m.promptpay)}
-                          </p>
-                        )}
-                      </div>
-                      {(billCounts[m.id] ?? 0) > 0 && (
-                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                          {billCounts[m.id]} บิล
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(m)}
-                        aria-label={`แก้ไข ${m.name}`}
-                        className={rowButton}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(m.id)}
-                        disabled={!!(billCounts[m.id])}
-                        aria-label={`ลบ ${m.name}`}
-                        title={billCounts[m.id] ? "ไม่สามารถลบสมาชิกที่มีบิลได้" : undefined}
-                        className={`${rowButton} hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400`}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
                     </div>
                   )}
+                  <div className={`${row} py-0 pl-[3.75rem]`}>
+                    <Users className="size-[18px] shrink-0 text-label-2" />
+                    <GroupInput
+                      placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
+                      aria-label="กลุ่ม"
+                      value={editGroup}
+                      onChange={setEditGroup}
+                      open={isEditGroupOpen}
+                      options={existingGroups.filter((group) => group !== editGroup)}
+                      onToggle={() => setIsEditGroupOpen((prev) => !prev)}
+                      onClose={closeEditGroup}
+                      onOptionSelect={(group) => {
+                        setEditGroup(group);
+                        setIsEditGroupOpen(false);
+                      }}
+                      className={rowField}
+                    />
+                  </div>
+                  {error && (
+                    <p role="alert" className="px-4 py-2 pl-[3.75rem] text-footnote text-negative">
+                      {error}
+                    </p>
+                  )}
+                  <div className={`${row} justify-between py-2`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        handleDelete(m.id);
+                      }}
+                      disabled={!!billCounts[m.id]}
+                      className="-ml-2 h-9 rounded-full px-2 text-body text-negative active:opacity-60 disabled:text-label-3"
+                    >
+                      {billCounts[m.id] ? "ลบไม่ได้ มีบิลอยู่" : "ลบสมาชิก"}
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="h-9 rounded-full bg-fill-3 px-4 text-subhead font-semibold text-label active:opacity-70"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(m.id)}
+                        className="h-9 rounded-full bg-tint px-4 text-subhead font-semibold text-white active:opacity-80"
+                      >
+                        บันทึก
+                      </button>
+                    </div>
+                  </div>
                 </li>
-              ))}
-            </ul>
-          </section>
+              ) : (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(m)}
+                    aria-label={`แก้ไข ${m.name}`}
+                    className={pressableRow}
+                  >
+                    <MemberAvatar name={m.name} group={m.group_name} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block break-words text-label">{m.name}</span>
+                      {m.promptpay && (
+                        <span className="flex items-center gap-1 text-footnote tabular-nums text-label-2">
+                          <QrCode className="size-3" />
+                          {formatPromptPay(m.promptpay)}
+                        </span>
+                      )}
+                    </span>
+                    {(billCounts[m.id] ?? 0) > 0 && (
+                      <span className="shrink-0 text-subhead tabular-nums text-label-2">{billCounts[m.id]} บิล</span>
+                    )}
+                    <Disclosure />
+                  </button>
+                </li>
+              )
+            )}
+          </Section>
         ))}
 
-        {error && <p className="px-1 text-xs text-destructive">{error}</p>}
-
         {/* Add member */}
-        <section className="space-y-2">
-          <h2 className="px-1 text-sm font-semibold text-slate-700">เพิ่มสมาชิก</h2>
-          <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-            <div className="flex gap-2">
-              <Input
-                placeholder="ชื่อสมาชิกใหม่ *"
-                value={newName}
-                onChange={(e) => { setNewName(e.target.value); setError(null); }}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
-                className="h-11 flex-1 rounded-xl bg-white px-3.5"
-              />
-              <Button
-                type="button"
-                onClick={handleAdd}
-                aria-label="เพิ่มสมาชิก"
-                className="h-11 w-11 shrink-0 rounded-xl p-0"
-                disabled={isPending}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
+        <Section
+          header="เพิ่มสมาชิก"
+          footer={error && !editingId ? <p role="alert" className="text-negative">{error}</p> : "ใส่กลุ่มเดียวกันให้คนในครอบครัว เพื่อหารและสรุปยอดเป็นครอบครัว"}
+        >
+          <div className={`${row} py-0 pr-2`}>
+            <Input
+              placeholder="ชื่อสมาชิกใหม่"
+              aria-label="ชื่อสมาชิกใหม่"
+              value={newName}
+              onChange={(e) => { setNewName(e.target.value); setError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+              className={rowField}
+            />
+            <button
+              type="button"
+              onClick={handleAdd}
+              aria-label="เพิ่มสมาชิก"
+              disabled={isPending || !newName.trim()}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-tint text-white transition-[opacity,transform] active:scale-90 disabled:bg-fill disabled:text-label-3"
+            >
+              <Plus className="size-5" strokeWidth={2.75} />
+            </button>
+          </div>
+          <div className={`${row} py-0`}>
             <GroupInput
               placeholder="กลุ่ม เช่น ครอบครัวก (ไม่บังคับ)"
+              aria-label="กลุ่มของสมาชิกใหม่"
               value={newGroup}
               onChange={setNewGroup}
               open={isAddGroupOpen}
@@ -401,10 +419,10 @@ export function MembersClient({ tripId, initialMembers, billCounts, promptPayEna
                 setNewGroup(group);
                 setIsAddGroupOpen(false);
               }}
-              className="h-10 rounded-xl bg-slate-50 px-3.5 text-sm text-slate-700"
+              className={rowField}
             />
           </div>
-        </section>
+        </Section>
       </div>
       <TripTabBar tripId={tripId} />
     </div>

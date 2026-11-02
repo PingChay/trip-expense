@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T00:00:00Z",
+  "title": "Design System: TripSplit",
+  "extensions": {
+    "colorMeta": {
+      "tint": { "role": "primary", "displayName": "System Blue", "canonical": "#007aff", "dark": "#0a84ff", "tonalRamp": ["oklch(0.25 0.09 258)", "oklch(0.35 0.14 258)", "oklch(0.45 0.18 258)", "oklch(0.55 0.21 258)", "oklch(0.62 0.21 258)", "oklch(0.72 0.15 258)", "oklch(0.84 0.08 258)", "oklch(0.95 0.025 258)"] },
+      "green": { "role": "secondary", "displayName": "System Green", "canonical": "#34c759", "dark": "#30d158", "tonalRamp": ["oklch(0.25 0.06 148)", "oklch(0.35 0.09 148)", "oklch(0.45 0.13 148)", "oklch(0.55 0.16 148)", "oklch(0.70 0.18 148)", "oklch(0.78 0.15 148)", "oklch(0.87 0.09 148)", "oklch(0.95 0.03 148)"] },
+      "red": { "role": "secondary", "displayName": "System Red", "canonical": "#ff3b30", "dark": "#ff453a", "tonalRamp": ["oklch(0.25 0.08 28)", "oklch(0.35 0.12 28)", "oklch(0.47 0.17 28)", "oklch(0.57 0.21 28)", "oklch(0.65 0.23 28)", "oklch(0.74 0.16 28)", "oklch(0.85 0.08 28)", "oklch(0.95 0.025 28)"] },
+      "orange": { "role": "secondary", "displayName": "System Orange", "canonical": "#ff9500", "dark": "#ff9f0a", "tonalRamp": ["oklch(0.28 0.06 60)", "oklch(0.38 0.09 60)", "oklch(0.50 0.13 55)", "oklch(0.62 0.16 55)", "oklch(0.76 0.17 65)", "oklch(0.83 0.13 70)", "oklch(0.90 0.07 75)", "oklch(0.96 0.025 75)"] },
+      "orange-ink": { "role": "secondary", "displayName": "Advance Ink", "canonical": "#c93400", "dark": "#ffb340" },
+      "positive": { "role": "secondary", "displayName": "Money Green", "canonical": "#248a3d", "dark": "#30d158" },
+      "negative": { "role": "secondary", "displayName": "Money Red", "canonical": "#d70015", "dark": "#ff6961" },
+      "hue-avatar": { "role": "tertiary", "displayName": "Family Hue Fill", "canonical": "oklch(0.92 0.06 var(--hue))", "dark": "oklch(0.36 0.07 var(--hue))" },
+      "hue-ink": { "role": "tertiary", "displayName": "Family Hue Ink", "canonical": "oklch(0.42 0.11 var(--hue))", "dark": "oklch(0.88 0.08 var(--hue))" },
+      "grouped": { "role": "neutral", "displayName": "Grouped Background", "canonical": "#f2f2f7", "dark": "#000000", "tonalRamp": ["#000000", "#1c1c1e", "#2c2c2e", "#3a3a3c", "#636366", "#aeaeb2", "#e5e5ea", "#f2f2f7"] },
+      "cell": { "role": "neutral", "displayName": "Cell", "canonical": "#ffffff", "dark": "#1c1c1e" },
+      "label": { "role": "neutral", "displayName": "Label", "canonical": "#000000", "dark": "#ffffff" },
+      "label-2": { "role": "neutral", "displayName": "Secondary Label", "canonical": "#6e6e73", "dark": "rgb(235 235 245 / 0.6)" },
+      "label-3": { "role": "neutral", "displayName": "Tertiary Label", "canonical": "rgb(60 60 67 / 0.6)", "dark": "rgb(235 235 245 / 0.45)" },
+      "separator": { "role": "neutral", "displayName": "Separator", "canonical": "rgb(60 60 67 / 0.29)", "dark": "rgb(84 84 88 / 0.65)" },
+      "fill": { "role": "neutral", "displayName": "Fill", "canonical": "rgb(120 120 128 / 0.2)", "dark": "rgb(120 120 128 / 0.36)" },
+      "fill-3": { "role": "neutral", "displayName": "Tertiary Fill", "canonical": "rgb(118 118 128 / 0.12)", "dark": "rgb(118 118 128 / 0.24)" },
+      "pressed": { "role": "neutral", "displayName": "Pressed Highlight", "canonical": "#e5e5ea", "dark": "#2c2c2e" },
+      "pass": { "role": "neutral", "displayName": "Pass Graphite", "canonical": "#1c1c1e", "dark": "#2c2c2e" },
+      "pass-label": { "role": "neutral", "displayName": "Pass Label", "canonical": "rgb(235 235 245 / 0.6)" }
+    },
+    "typographyMeta": {
+      "large-title": { "displayName": "Large Title", "purpose": "Top-level screen title below the bar; collapses into the bar on scroll." },
+      "title1": { "displayName": "Title 1", "purpose": "Join screen trip name, QR sheet amount." },
+      "title2": { "displayName": "Title 2", "purpose": "Not-found and similar standalone headings." },
+      "title3": { "displayName": "Title 3", "purpose": "Pass figures, totals, empty-state headings." },
+      "body": { "displayName": "Body", "purpose": "Rows, fields, buttons, inline nav title." },
+      "callout": { "displayName": "Callout", "purpose": "Occasional secondary row text." },
+      "subhead": { "displayName": "Subhead", "purpose": "Subtitles (Thai dates), member lists, choice pills." },
+      "footnote": { "displayName": "Footnote", "purpose": "Section headers and footers, segmented labels." },
+      "caption": { "displayName": "Caption", "purpose": "Currency codes, pass field labels." },
+      "caption2": { "displayName": "Caption 2", "purpose": "Tab bar labels, small avatar monograms." },
+      "trip-id": { "displayName": "Trip ID", "purpose": "Monospaced trip identifier on the boarding pass." }
+    },
+    "shadows": [
+      { "name": "glass-control", "value": "0 2px 10px -2px rgb(0 0 0 / 0.12), inset 0 0 0 0.5px color-mix(in srgb, var(--ios-label) 8%, transparent)", "purpose": "Glass bar buttons and the floating tab bar." },
+      { "name": "sheet", "value": "0 -8px 40px -12px rgb(0 0 0 / 0.35)", "purpose": "Bottom sheets over a 32% black backdrop." },
+      { "name": "pass", "value": "0 10px 30px -12px rgb(0 0 0 / 0.5)", "purpose": "The Wallet boarding pass only." },
+      { "name": "menu", "value": "0 10px 40px -8px rgb(0 0 0 / 0.3)", "purpose": "Popover menus on material." },
+      { "name": "thumb", "value": "0 3px 8px rgb(0 0 0 / 0.12), 0 3px 1px rgb(0 0 0 / 0.04)", "purpose": "Segmented-control thumb and switch knob." },
+      { "name": "bar-hairline", "value": "0 0.5px 0 var(--ios-separator)", "purpose": "Scrolled nav bar bottom edge." }
+    ],
+    "materials": [
+      { "name": "material", "value": "background: color-mix(in srgb, var(--ios-cell) 72%, transparent); backdrop-filter: blur(20px) saturate(180%)", "purpose": "Menus and floating panels." },
+      { "name": "material-bar", "value": "background: color-mix(in srgb, var(--ios-grouped) 78%, transparent); backdrop-filter: blur(20px) saturate(180%)", "purpose": "Nav bar once content scrolls beneath." },
+      { "name": "glass", "value": "background: color-mix(in srgb, var(--ios-cell) 78%, transparent); backdrop-filter: blur(16px) saturate(180%)", "purpose": "Bar buttons and tab bar." }
+    ],
+    "motion": [
+      { "name": "ease-sheet", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Sheet rise (420ms) and snap-back after drag (300ms)." },
+      { "name": "press", "value": "150ms; scale 0.97 (buttons), 0.95 (bar text buttons), 0.9 (bar icons, tab icons)", "purpose": "Touch feedback." },
+      { "name": "row-press", "value": "100ms background to pressed", "purpose": "Grouped row highlight." },
+      { "name": "bar-fade", "value": "200ms", "purpose": "Nav bar material and inline title fade." },
+      { "name": "reduced-motion", "value": "sheet fades in over 200ms instead of rising", "purpose": "prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px", "purpose": "Sheet becomes a centred 24rem dialog." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Filled Button",
+      "kind": "button",
+      "refersTo": "button-filled",
+      "description": "Prominent capsule for the primary action on a screen or sheet.",
+      "html": "<button class=\"ds-btn-filled\">บันทึก</button>",
+      "css": ".ds-btn-filled { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 20px; border: none; border-radius: 9999px; background: var(--ios-tint, #007aff); color: #fff; font: 600 1.0625rem/1.35 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; transition: opacity 150ms, transform 150ms; cursor: pointer; } .ds-btn-filled:hover { opacity: 0.92; } .ds-btn-filled:active { transform: scale(0.97); opacity: 0.8; } .ds-btn-filled:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Gray Button",
+      "kind": "button",
+      "refersTo": "button-gray",
+      "description": "Secondary capsule on a fill surface.",
+      "html": "<button class=\"ds-btn-gray\">ยกเลิก</button>",
+      "css": ".ds-btn-gray { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border: none; border-radius: 9999px; background: var(--ios-fill-3, rgb(118 118 128 / 0.12)); color: var(--ios-label, #000); font: 600 1.0625rem/1.35 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; transition: opacity 150ms, transform 150ms; cursor: pointer; } .ds-btn-gray:active { transform: scale(0.97); opacity: 0.8; } .ds-btn-gray:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Bar Button",
+      "kind": "button",
+      "refersTo": "button-plain",
+      "description": "Round glass button in the nav bar (back, close).",
+      "html": "<button class=\"ds-bar-btn\" aria-label=\"back\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m15 18-6-6 6-6\"/></svg></button>",
+      "css": ".ds-bar-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: none; border-radius: 9999px; color: var(--ios-label, #000); background: color-mix(in srgb, var(--ios-cell, #fff) 78%, transparent); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.12), inset 0 0 0 0.5px rgb(0 0 0 / 0.08); transition: transform 150ms; cursor: pointer; } .ds-bar-btn:active { transform: scale(0.9); } .ds-bar-btn:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Filled, borderless iOS field.",
+      "html": "<input class=\"ds-input\" placeholder=\"ชื่อทริป\" />",
+      "css": ".ds-input { height: 44px; width: 100%; padding: 0 14px; border: none; border-radius: 12px; background: var(--ios-fill-3, rgb(118 118 128 / 0.12)); color: var(--ios-label, #000); font: 400 1.0625rem/1.35 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; outline: none; transition: box-shadow 150ms; } .ds-input::placeholder { color: var(--ios-label-2, #6e6e73); } .ds-input:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ios-tint, #007aff) 40%, transparent); }"
+    },
+    {
+      "name": "Inset Grouped Section",
+      "kind": "card",
+      "refersTo": "grouped-section",
+      "description": "Footnote header, cell group with inset hairlines, navigating row with chevron.",
+      "html": "<section class=\"ds-section\"><h2 class=\"ds-section-h\">ต้องโอนเงิน</h2><div class=\"ds-group\"><div class=\"ds-row\"><span class=\"ds-avatar\" style=\"--hue:225\">ด</span><span class=\"ds-grow\">แม่ดา</span><span class=\"ds-money\">2,476.40<small>THB</small></span></div><a class=\"ds-row ds-row-link\" href=\"#\"><span class=\"ds-grow\">ดูสรุปโอนเงิน</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"ds-chev\"><path d=\"m9 18 6-6-6-6\"/></svg></a></div></section>",
+      "css": ".ds-section { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; } .ds-section-h { margin: 0; padding: 0 16px 6px; font-size: 0.8125rem; font-weight: 400; color: var(--ios-label-2, #6e6e73); } .ds-group { border-radius: 20px; overflow: hidden; background: var(--ios-cell, #fff); } .ds-row { position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 16px; font-size: 1.0625rem; color: var(--ios-label, #000); text-decoration: none; } .ds-row + .ds-row::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; transform: scaleY(0.5); transform-origin: top; background: var(--ios-separator, rgb(60 60 67 / 0.29)); } .ds-row-link { color: var(--ios-tint, #007aff); transition: background-color 100ms; } .ds-row-link:hover { background: color-mix(in srgb, var(--ios-fill-3, rgb(118 118 128 / 0.12)) 60%, transparent); } .ds-row-link:active { background: var(--ios-pressed, #e5e5ea); } .ds-row-link:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: -2px; } .ds-grow { flex: 1; } .ds-chev { color: var(--ios-label-3, rgb(60 60 67 / 0.6)); } .ds-money { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; } .ds-money small { display: block; font-size: 0.75rem; font-weight: 500; color: var(--ios-label-2, #6e6e73); } .ds-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; font-size: 0.8125rem; font-weight: 600; background: oklch(0.92 0.06 var(--hue)); color: oklch(0.42 0.11 var(--hue)); }"
+    },
+    {
+      "name": "Choice Pill",
+      "kind": "chip",
+      "refersTo": "choice-pill",
+      "description": "Radio-style capsule with leading avatar (payer picker).",
+      "html": "<div class=\"ds-pills\"><button class=\"ds-pill\" aria-checked=\"true\" role=\"radio\"><span class=\"ds-pill-av\" style=\"--hue:225\">ด</span>แม่ดา</button><button class=\"ds-pill\" aria-checked=\"false\" role=\"radio\"><span class=\"ds-pill-av\" style=\"--hue:2\">ม</span>แม่มุก</button></div>",
+      "css": ".ds-pills { display: flex; flex-wrap: wrap; gap: 8px; } .ds-pill { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 16px 6px 6px; border: none; border-radius: 9999px; background: var(--ios-fill-3, rgb(118 118 128 / 0.12)); color: var(--ios-label, #000); font: 400 0.9375rem/1.38 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; transition: background-color 150ms, color 150ms, transform 150ms; cursor: pointer; } .ds-pill[aria-checked=true] { background: var(--ios-tint, #007aff); color: #fff; font-weight: 600; } .ds-pill:active { transform: scale(0.97); } .ds-pill:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: 2px; } .ds-pill-av { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; background: oklch(0.92 0.06 var(--hue)); color: oklch(0.42 0.11 var(--hue)); }"
+    },
+    {
+      "name": "Floating Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Glass capsule with five tabs and the centre add-bill disc.",
+      "html": "<nav class=\"ds-tabbar\"><a class=\"ds-tab ds-tab-active\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>หน้าแรก</span></a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z\"/><path d=\"M16 8H8M16 12H8M13 16H8\"/></svg><span>บิลทั้งหมด</span></a><a class=\"ds-tab ds-tab-add\" href=\"#\"><span class=\"ds-add\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.75\" stroke-linecap=\"round\"><path d=\"M5 12h14M12 5v14\"/></svg></span><span>เพิ่มบิล</span></a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75\"/></svg><span>สมาชิก</span></a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 3v16a2 2 0 0 0 2 2h16M7 16V8M11 16V5M15 16v-6M19 16v-3\"/></svg><span>สรุป</span></a></nav>",
+      "css": ".ds-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; height: 64px; max-width: 28rem; padding: 4px; border-radius: 9999px; background: color-mix(in srgb, var(--ios-cell, #fff) 78%, transparent); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.12), inset 0 0 0 0.5px rgb(0 0 0 / 0.08); font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; } .ds-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 100%; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; color: var(--ios-label, #000); text-decoration: none; transition: background-color 200ms, color 200ms; } .ds-tab:hover { color: var(--ios-tint, #007aff); } .ds-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ios-tint, #007aff); } .ds-tab:active svg, .ds-tab:active .ds-add { transform: scale(0.9); } .ds-tab-active { background: var(--ios-fill-3, rgb(118 118 128 / 0.12)); color: var(--ios-tint, #007aff); } .ds-tab-add { color: var(--ios-tint, #007aff); } .ds-add { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; background: var(--ios-tint, #007aff); color: #fff; transition: transform 150ms; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented",
+      "description": "Two-way capsule switch with a raised thumb (bill type, report view).",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\"><button class=\"ds-seg-opt\" role=\"radio\" aria-checked=\"true\">ค่าใช้จ่าย</button><button class=\"ds-seg-opt\" role=\"radio\" aria-checked=\"false\">โอนคืน</button></div>",
+      "css": ".ds-seg { display: flex; padding: 2px; border-radius: 9999px; background: var(--ios-fill-3, rgb(118 118 128 / 0.12)); } .ds-seg-opt { flex: 1; height: 32px; border: none; border-radius: 9999px; background: transparent; color: var(--ios-label, #000); font: 600 0.8125rem/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; transition: background-color 200ms, box-shadow 200ms; cursor: pointer; } .ds-seg-opt[aria-checked=true] { background: var(--ios-cell, #fff); box-shadow: 0 3px 8px rgb(0 0 0 / 0.12), 0 3px 1px rgb(0 0 0 / 0.04); } .ds-seg-opt:focus-visible { outline: 2px solid var(--ios-tint, #007aff); outline-offset: 2px; } @media (prefers-color-scheme: dark) { .ds-seg-opt[aria-checked=true] { background: #636366; } }"
+    },
+    {
+      "name": "Wallet Boarding Pass",
+      "kind": "custom",
+      "refersTo": "boarding-pass",
+      "description": "The dashboard's one signature: trip ID, share actions, perforated stub of trip figures.",
+      "html": "<section class=\"ds-pass\"><div class=\"ds-pass-top\"><div class=\"ds-pass-head\"><b>TripSplit</b><span>บัตรทริป</span></div><span class=\"ds-pass-lbl\">Trip ID</span><div class=\"ds-pass-id\">AWL-0588</div><div class=\"ds-pass-actions\"><button class=\"ds-pass-btn ds-pass-btn-w\">คัดลอกลิงก์</button><button class=\"ds-pass-btn\">แชร์</button></div></div><div class=\"ds-perf\"><i></i><i></i></div><dl class=\"ds-stub\"><div><dt>สมาชิก</dt><dd>19 <small>คน</small></dd></div><div><dt>บิล</dt><dd>15 <small>รายการ</small></dd></div><div style=\"text-align:right\"><dt>ยอดรวม</dt><dd>11,958 <small>THB</small></dd></div></dl></section>",
+      "css": ".ds-pass { position: relative; overflow: hidden; max-width: 24rem; border-radius: 22px; background: var(--ios-pass, #1c1c1e); color: #fff; box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.5); font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; } .ds-pass-top { padding: 16px 20px 20px; display: grid; gap: 4px; } .ds-pass-head { display: flex; justify-content: space-between; font-size: 0.9375rem; margin-bottom: 12px; } .ds-pass-head span, .ds-pass-lbl, .ds-stub dt { color: rgb(235 235 245 / 0.6); font-size: 0.75rem; font-weight: 500; } .ds-pass-head span { font-size: 0.8125rem; font-weight: 400; } .ds-pass-id { font: 600 1.625rem/1 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.08em; margin-bottom: 12px; } .ds-pass-actions { display: flex; gap: 8px; } .ds-pass-btn { height: 44px; padding: 0 16px; border: none; border-radius: 9999px; background: rgb(255 255 255 / 0.15); color: #fff; font: 600 0.9375rem system-ui, sans-serif; transition: transform 150ms; cursor: pointer; } .ds-pass-btn-w { background: #fff; color: #000; } .ds-pass-btn:active { transform: scale(0.95); } .ds-pass-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .ds-perf { position: relative; height: 0; } .ds-perf::after { content: ''; position: absolute; left: 24px; right: 24px; top: 0; border-top: 2px dotted rgb(255 255 255 / 0.2); } .ds-perf i { position: absolute; top: -12px; width: 24px; height: 24px; border-radius: 9999px; background: var(--ios-grouped, #f2f2f7); } .ds-perf i:first-child { left: -12px; } .ds-perf i:last-child { right: -12px; } .ds-stub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; padding: 16px 20px 20px; } .ds-stub dd { margin: 2px 0 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-stub small { font-size: 0.9375rem; font-weight: 400; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "An iPhone App That Happens To Load From A Link",
+    "overview": "TripSplit borrows the arrangement every iPhone user already reads without thinking: a large title that collapses into a translucent bar, inset grouped lists on the grouped-background grey, capsule buttons, bottom sheets with a grabber, and a floating glass tab bar. Nothing is bespoke chrome. Every colour is an iOS semantic role (grouped background, cell, label, secondary label, separator, fill, tint), so light and dark come from one set of names and the phone's own setting decides which.\n\nDensity is the density of Settings and Wallet: 44px minimum rows, hairline separators inset to the text edge, footnote-sized section headers in secondary grey, and generous 28px gaps between sections. Money reads as numbers first: tabular figures, semibold, with the currency set small beneath or beside. Copy is Thai, so the type ramp runs a little taller than Apple's to give stacked marks room.\n\nTwo things are allowed to be expressive. Families carry one hue each, and that hue lives only in monogram avatars. And the trip dashboard opens on a single Wallet boarding pass, the one signature move. Everything else stays system.",
+    "keyCharacteristics": [
+      "iOS semantic tokens (`--ios-*`) for every colour, swapped wholesale under `prefers-color-scheme: dark`.",
+      "System Blue is the only interactive tint.",
+      "Inset grouped sections (20px radius) with half-pixel separators inset to the text edge.",
+      "Floating glass controls: round bar buttons, a capsule tab bar with the add-bill + in its centre.",
+      "Bottom sheets on native `<dialog>` with a grabber and pull-to-dismiss.",
+      "Family colour as hue only, rendered through avatar fill and ink.",
+      "Lucide line icons stand in for SF Symbols, which cannot be licensed for the web."
+    ],
+    "rules": [
+      { "name": "The One Tint Rule", "body": "System Blue means \"tap here\", and nothing else is blue. Status colours never become buttons in their own hue except the destructive red.", "section": "colors" },
+      { "name": "The Hue-Only Family Rule", "body": "A family's colour is a hue on an avatar. It never tints row backgrounds, text, borders or money.", "section": "colors" },
+      { "name": "The Contrast-Adjusted Rule", "body": "Small text uses label-2 (#6E6E73 light) and money text uses positive/negative, not stock systemGreen/systemRed. Placeholders are label-2, not label-3.", "section": "colors" },
+      { "name": "The Text Style Rule", "body": "Size only through the named text styles (`text-large-title` … `text-caption2`); `cn()` is extended so tailwind-merge treats them as sizes. No arbitrary font sizes except the pass Trip ID.", "section": "typography" },
+      { "name": "The Tabular Money Rule", "body": "Every amount and count is `tabular-nums`, semibold, with its currency smaller and in a quieter colour.", "section": "typography" },
+      { "name": "The Thai Date Rule", "body": "Dates render through `formatTripDates` in Thai Buddhist-era short form (e.g. \"21–23 ส.ค. 2569\"), read as UTC so the day never shifts.", "section": "typography" },
+      { "name": "The Flat Cell Rule", "body": "Grouped sections never carry a shadow or a border; the grey-on-white step is the whole separation.", "section": "elevation" },
+      { "name": "The Material Bar Rule", "body": "Anything that floats over scrolling content (nav bar, tab bar, bar buttons, menus) is blurred material (`saturate(180%)`, 16–20px blur), never an opaque slab.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** use the `--ios-*` semantic tokens (via `bg-grouped`, `bg-cell`, `text-label`, `text-label-2`, `bg-fill-3`, `text-tint`) so dark mode follows the system with no per-component overrides.",
+      "**Do** build lists as inset grouped Sections with 44px+ rows and separators inset to the text edge (60px after a 32px avatar).",
+      "**Do** put money in `tabular-nums` semibold with the currency smaller, and colour direction with positive/negative only.",
+      "**Do** carry family identity through the avatar hue and nothing else.",
+      "**Do** keep the add-bill + as the centre tint disc inside the floating tab bar.",
+      "**Do** use lucide line icons at 2–2.5 stroke as the SF Symbols stand-in, label-coloured in bars and label-3 for chevrons and arrows.",
+      "**Do** format dates with `formatTripDates` (Thai, Buddhist era, UTC)."
+    ],
+    "donts": [
+      "**Don't** return to the \"website with cards\" arrangement: bordered white cards on slate, bespoke chips and boxes.",
+      "**Don't** introduce a second interactive colour; blue is the only tint.",
+      "**Don't** put family hues on row backgrounds, text, borders or amounts.",
+      "**Don't** use stock systemGreen/systemRed or label-3 for small text; they fail contrast.",
+      "**Don't** add a manual light/dark toggle; appearance follows the phone.",
+      "**Don't** repeat the boarding pass treatment on other screens; it is the dashboard's one signature.",
+      "**Don't** add shadows or borders to grouped sections, or opaque fills to bars and floating controls."
+    ]
+  }
+}

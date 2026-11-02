@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader } from "@/components/page-header";
+import { AVATAR_INSET, Section, row } from "@/components/ui/grouped";
 import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
 import { TransferParties } from "@/components/transfer-parties";
 import { SettlementQr } from "@/components/promptpay-qr";
@@ -117,7 +118,7 @@ function ledgerLines(expense: SummaryItem[], payments: SummaryItem[]): LedgerLin
 function signed(balance: number) {
   const rounded = round2(balance);
   const sign = rounded > 0.005 ? "+" : rounded < -0.005 ? "−" : "";
-  const tone = sign === "+" ? "text-positive" : sign === "−" ? "text-negative" : "text-slate-400";
+  const tone = sign === "+" ? "text-positive" : sign === "−" ? "text-negative" : "text-label-2";
   return { text: `${sign}${money(Math.abs(rounded))}`, tone, sign };
 }
 
@@ -135,31 +136,28 @@ function Verdict({ lines }: { lines: LedgerLine[] }) {
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
       {lines.map((line) => {
-        const currencyTag = lines.length > 1 && <span className="text-xs font-medium"> {line.currency}</span>;
+        const currencyTag = lines.length > 1 && <span className="text-caption font-medium"> {line.currency}</span>;
         if (isZero(line.balance)) {
           const status = settledStatus(line);
           return status ? (
             <span
               key={line.currency}
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[13px] font-semibold leading-none text-positive"
+              className="inline-flex items-center gap-1 rounded-full bg-green/15 px-2.5 py-1 text-footnote font-semibold text-positive"
             >
-              <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+              <Check className="size-3.5" strokeWidth={3} />
               {status}
               {currencyTag}
             </span>
           ) : (
-            <span key={line.currency} className="rounded-full bg-slate-100 px-2.5 py-1 text-[13px] font-medium leading-none text-slate-500">
+            <span key={line.currency} className="rounded-full bg-fill-3 px-2.5 py-1 text-footnote font-medium text-label-2">
               ไม่ต้องโอน{currencyTag}
             </span>
           );
         }
         const v = signed(line.balance);
         return (
-          <span
-            key={line.currency}
-            className={`rounded-full px-2.5 py-1 text-[15px] font-semibold leading-none tabular-nums ${v.sign === "+" ? "bg-emerald-50" : "bg-red-50"} ${v.tone}`}
-          >
-            {v.text} <span className="text-xs font-medium">{line.currency}</span>
+          <span key={line.currency} className={`text-title3 font-bold tabular-nums ${v.tone}`}>
+            {v.text} <span className="text-caption font-semibold">{line.currency}</span>
           </span>
         );
       })}
@@ -169,41 +167,43 @@ function Verdict({ lines }: { lines: LedgerLine[] }) {
 
 function SignLegend() {
   return (
-    <p className="flex items-center gap-3 px-1 text-xs text-slate-500">
-      <span><b className="font-semibold text-positive">+</b> ได้คืน</span>
-      <span><b className="font-semibold text-negative">−</b> ต้องจ่าย</span>
+    <p className="flex items-center gap-4 px-4 text-footnote text-label-2">
+      <span><b className="font-bold text-positive">+</b> ได้คืน</span>
+      <span><b className="font-bold text-negative">−</b> ต้องจ่าย</span>
     </p>
   );
 }
 
 function LedgerRow({ label, value, currency }: { label: string; value: string; currency: string }) {
   return (
-    <div className="flex justify-between text-slate-600">
-      <span>{label}</span>
-      <span className="tabular-nums">
+    <div className={`${row} min-h-10 justify-between py-2 text-subhead`}>
+      <span className="text-label-2">{label}</span>
+      <span className="tabular-nums text-label">
         {value} {currency}
       </span>
     </div>
   );
 }
 
-/** Receipt-style breakdown: paid, minus own share, then transfers already settled, equals what is left. */
+/** Receipt-style rows: paid, minus own share, then transfers already settled, equals what is left. */
 function Ledger({ lines, labels }: { lines: LedgerLine[]; labels: { paid: string; owed: string } }) {
   return (
-    <div className="space-y-3">
+    <>
       {lines.map((line) => {
         const net = signed(line.balance);
         return (
-          <div key={line.currency} className="space-y-1 text-sm">
-            {lines.length > 1 && <p className="text-xs font-semibold text-slate-500">{line.currency}</p>}
+          <div key={line.currency} className="ios-list">
+            {lines.length > 1 && (
+              <p className="px-4 pb-0.5 pt-2.5 text-caption font-semibold text-label-2">{line.currency}</p>
+            )}
             <LedgerRow label={labels.paid} value={money(line.paid)} currency={line.currency} />
             <LedgerRow label={labels.owed} value={`− ${money(line.owed)}`} currency={line.currency} />
             {line.sent > 0.005 && <LedgerRow label="โอนแล้ว" value={`+ ${money(line.sent)}`} currency={line.currency} />}
             {line.received > 0.005 && (
               <LedgerRow label="ได้รับแล้ว" value={`− ${money(line.received)}`} currency={line.currency} />
             )}
-            <div className="flex justify-between border-t border-slate-100 pt-1.5 font-medium">
-              <span className="text-slate-700">สรุป</span>
+            <div className={`${row} min-h-10 justify-between py-2 text-subhead font-semibold`}>
+              <span>สรุป</span>
               <span className={`tabular-nums ${net.tone}`}>
                 {net.text} {line.currency}
               </span>
@@ -211,7 +211,7 @@ function Ledger({ lines, labels }: { lines: LedgerLine[]; labels: { paid: string
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
 
@@ -231,13 +231,17 @@ function SummaryCard({
 }) {
   const lines = ledgerLines(currencies, advanceCurrencies);
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <Section>
+      <div className={`${row} items-center justify-between py-3`}>
         {heading}
         {lines.length > 0 && <Verdict lines={lines} />}
       </div>
-      {lines.length === 0 ? <p className="text-xs text-slate-400">ยังไม่มีบิล</p> : <Ledger lines={lines} labels={labels} />}
-    </div>
+      {lines.length === 0 ? (
+        <p className={`${row} text-subhead text-label-2`}>ยังไม่มีบิล</p>
+      ) : (
+        <Ledger lines={lines} labels={labels} />
+      )}
+    </Section>
   );
 }
 
@@ -264,25 +268,54 @@ export function ReportClient({
     ...(hasGroups ? [{ id: "group" as const, label: "รายกลุ่ม" }] : []),
   ];
 
+  const settlementRow = (
+    key: string | number,
+    s: Settlement & { fromIsGroup?: boolean; toIsGroup?: boolean }
+  ) => (
+    <li key={key} className={`${row} justify-between py-3`}>
+      <TransferParties from={s.fromName} to={s.toName} fromIsGroup={s.fromIsGroup} toIsGroup={s.toIsGroup} />
+      <div className="flex shrink-0 items-center gap-3">
+        <p className="text-right font-semibold tabular-nums">
+          {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <span className="block text-caption font-medium text-label-2">{s.currency}</span>
+        </p>
+        <SettlementQr
+          target={promptPayTargets[s.toName]}
+          tripId={tripId}
+          from={s.fromName}
+          fromMemberId={payerIds[s.fromName]}
+          to={s.toName}
+          amount={s.amount}
+          currency={s.currency}
+          setupCandidates={setupCandidates?.[s.toName]}
+        />
+      </div>
+    </li>
+  );
+
+  const emptyState = (text: string) => (
+    <p className="px-6 py-16 text-center text-subhead text-label-2">{text}</p>
+  );
+
   return (
     <AvatarColorProvider keys={perPerson.map((p) => p.groupName ?? p.name)}>
     <div className="min-h-screen">
-      <PageHeader title="สรุป" />
+      <PageHeader large title="สรุป" />
 
-      {/* Tabs */}
-      <div className="sticky top-14 z-10 bg-background/90 backdrop-blur-md">
-        <div role="tablist" className="mx-auto max-w-sm px-4 py-3">
-          <div className="flex rounded-full bg-slate-200/60 p-1">
+      {/* iOS segmented control, pinned under the bar */}
+      <div className="material-bar sticky top-[calc(env(safe-area-inset-top)+3.25rem)] z-10">
+        <div role="tablist" aria-label="มุมมองสรุป" className="mx-auto max-w-md px-4 pb-2.5 pt-1">
+          <div className="flex rounded-full bg-fill-3 p-0.5">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 role="tab"
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[13px] font-medium transition-[background-color,color,box-shadow] duration-150 ${
+                className={`h-8 flex-1 whitespace-nowrap rounded-full px-2 text-footnote font-semibold transition-[background-color,box-shadow] duration-200 ${
                   tab === t.id
-                    ? "bg-white text-slate-900 shadow-[0_1px_3px_rgb(15_23_42/0.12)]"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-cell text-label shadow-[0_3px_8px_rgb(0_0_0/0.12),0_3px_1px_rgb(0_0_0/0.04)] dark:bg-[#636366]"
+                    : "text-label"
                 }`}
               >
                 {t.label}
@@ -292,97 +325,87 @@ export function ReportClient({
         </div>
       </div>
 
-      <div className="mx-auto max-w-sm px-4 pb-32 pt-1">
+      <div className="mx-auto max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-4">
         {/* Bill Breakdown */}
         {tab === "breakdown" && (
-          <div className="space-y-4">
-            {billBreakdown.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-300 py-14 text-center text-sm text-slate-500">ยังไม่มีรายการ</p>
-            ) : (
-              billBreakdown.map((bill) => (
-                <div key={bill.id} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-                  <div className="border-b border-slate-100 px-4 py-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-slate-900">{bill.title}</p>
-                        {bill.entryType === "advance" && (
-                          <p className="mt-1 inline-flex rounded-full bg-amber-100/80 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                            {getBillEntryLabel(bill.entryType)}
-                          </p>
-                        )}
+          <div className="space-y-6">
+            {billBreakdown.length === 0
+              ? emptyState("ยังไม่มีรายการ")
+              : billBreakdown.map((bill) => (
+                  <Section key={bill.id} inset={AVATAR_INSET} groupClassName="[&>*:first-child+*]:before:left-0">
+                    <div className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 break-words font-semibold">
+                          {bill.title}
+                          {bill.entryType === "advance" && (
+                            <span className="ml-1.5 inline-block rounded-full bg-orange/15 px-2 py-0.5 align-[2px] text-caption font-semibold text-orange-ink">
+                              {getBillEntryLabel(bill.entryType)}
+                            </span>
+                          )}
+                        </p>
+                        <p className="shrink-0 font-semibold tabular-nums">
+                          {bill.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                          <span className="text-caption font-medium text-label-2">{bill.currency}</span>
+                        </p>
                       </div>
-                      <p className="font-semibold text-slate-900 tabular-nums shrink-0">
-                        {bill.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                        {bill.currency}
+                      <p className="mt-0.5 text-footnote text-label-2">
+                        จ่ายโดย {bill.payerName}
+                        {bill.date ? ` · ${bill.date}` : ""}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      จ่ายโดย: {bill.payerName}
-                      {bill.date ? ` · ${bill.date}` : ""}
-                    </p>
-                  </div>
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {bill.shares.map((s, i) => (
-                        <tr key={i} className="border-b border-slate-100 last:border-b-0">
-                          <td className="px-4 py-2 text-slate-700">
-                            <span className="flex items-center gap-2">
-                              <MemberAvatar name={s.name} group={groupOf[s.name]} size="sm" />
-                              {s.name}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-right text-slate-600 tabular-nums">
-                            {s.share.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                            {bill.currency}
-                            {s.personal > 0 && (
-                              <span className="block text-[11px] text-slate-400">ราคาเฉพาะ</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))
-            )}
+                    {bill.shares.map((share, i) => (
+                      <div key={i} className={`${row} justify-between text-subhead`}>
+                        <span className="flex min-w-0 items-center gap-3">
+                          <MemberAvatar name={share.name} group={groupOf[share.name]} />
+                          <span className="min-w-0 break-words">{share.name}</span>
+                        </span>
+                        <span className="shrink-0 text-right tabular-nums text-label-2">
+                          {share.share.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                          {bill.currency}
+                          {share.personal > 0 && <span className="block text-caption text-label-2">ราคาเฉพาะ</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </Section>
+                ))}
           </div>
         )}
 
         {tab === "person" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {perPerson.length > 0 && <SignLegend />}
-            {perPerson.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-300 py-14 text-center text-sm text-slate-500">ยังไม่มีรายการ</p>
-            ) : (
-              perPerson.map((p) => (
-                <SummaryCard
-                  key={p.id}
-                  heading={
-                    <p className="flex min-w-0 items-center gap-2.5 font-semibold text-slate-900">
-                      <MemberAvatar name={p.name} group={p.groupName} />
-                      <span className="truncate">{p.name}</span>
-                    </p>
-                  }
-                  currencies={p.currencies}
-                  advanceCurrencies={p.advanceCurrencies}
-                  labels={LEDGER_LABELS}
-                />
-              ))
-            )}
+            {perPerson.length === 0
+              ? emptyState("ยังไม่มีรายการ")
+              : perPerson.map((p) => (
+                  <SummaryCard
+                    key={p.id}
+                    heading={
+                      <p className="flex min-w-0 items-center gap-3 font-semibold">
+                        <MemberAvatar name={p.name} group={p.groupName} />
+                        <span className="break-words">{p.name}</span>
+                      </p>
+                    }
+                    currencies={p.currencies}
+                    advanceCurrencies={p.advanceCurrencies}
+                    labels={LEDGER_LABELS}
+                  />
+                ))}
           </div>
         )}
 
         {tab === "group" && hasGroups && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <SignLegend />
             {groupSummaries.map((g) => (
               <SummaryCard
                 key={g.groupName}
                 heading={
-                  <p className="flex min-w-0 items-center gap-1.5 font-semibold text-slate-900">
-                    {g.isGroup ? <GroupAvatar group={g.groupName} /> : <MemberAvatar name={g.groupName} size="sm" />}
-                    <span className="break-words">{g.groupName}</span>
-                    {g.isGroup && <span className="shrink-0 text-xs font-normal text-slate-400">{g.memberCount} คน</span>}
+                  <p className="flex min-w-0 items-center gap-3">
+                    {g.isGroup ? <GroupAvatar group={g.groupName} size="md" /> : <MemberAvatar name={g.groupName} />}
+                    <span className="min-w-0">
+                      <span className="block break-words font-semibold">{g.groupName}</span>
+                      {g.isGroup && <span className="block text-footnote text-label-2">{g.memberCount} คน</span>}
+                    </span>
                   </p>
                 }
                 currencies={g.currencies}
@@ -393,86 +416,28 @@ export function ReportClient({
           </div>
         )}
 
-        {tab === "settlement" && (
-          <div className="space-y-4">
-            {settlements.length === 0 && groupSettlements.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-sm text-slate-500">
-                  {perPerson.length === 0 ? "ยังไม่มีรายการ" : "ไม่ต้องโอน ทุกคนจ่ายพอดี"}
-                </p>
-              </div>
+        {tab === "settlement" &&
+          (settlements.length === 0 && groupSettlements.length === 0 ? (
+            perPerson.length === 0 ? (
+              emptyState("ยังไม่มีรายการ")
             ) : (
-              <div className="space-y-4">
-                {groupSettlements.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="px-1 text-sm font-semibold text-slate-700">
-                      ต้องโอน {groupSettlements.length} รายการ
-                    </p>
-                    {groupSettlements.map((s, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]"
-                      >
-                        <TransferParties
-                          from={s.fromName}
-                          to={s.toName}
-                          fromIsGroup={s.fromIsGroup}
-                          toIsGroup={s.toIsGroup}
-                        />
-                        <div className="flex shrink-0 items-center gap-2.5">
-                          <p className="font-bold tabular-nums text-slate-900">
-                            {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
-                          </p>
-                          <SettlementQr
-                            target={promptPayTargets[s.toName]}
-                            tripId={tripId}
-                            from={s.fromName}
-                            fromMemberId={payerIds[s.fromName]}
-                            to={s.toName}
-                            amount={s.amount}
-                            currency={s.currency}
-                            setupCandidates={setupCandidates?.[s.toName]}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {groupSettlements.length === 0 && settlements.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="px-1 text-sm font-semibold text-slate-700">
-                      ต้องโอน {settlements.length} รายการ
-                    </p>
-                    {settlements.map((s, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]"
-                      >
-                        <TransferParties from={s.fromName} to={s.toName} />
-                        <div className="flex shrink-0 items-center gap-2.5">
-                          <p className="font-bold tabular-nums text-slate-900">
-                            {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {s.currency}
-                          </p>
-                          <SettlementQr
-                            target={promptPayTargets[s.toName]}
-                            tripId={tripId}
-                            from={s.fromName}
-                            fromMemberId={payerIds[s.fromName]}
-                            to={s.toName}
-                            amount={s.amount}
-                            currency={s.currency}
-                            setupCandidates={setupCandidates?.[s.toName]}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="flex flex-col items-center px-6 py-16 text-center">
+                <span className="flex size-14 items-center justify-center rounded-full bg-green text-white">
+                  <Check className="size-7" strokeWidth={3} />
+                </span>
+                <p className="mt-4 text-title3 font-bold">ไม่ต้องโอน</p>
+                <p className="mt-1 text-subhead text-label-2">ทุกคนจ่ายพอดี</p>
               </div>
-            )}
-          </div>
-        )}
+            )
+          ) : groupSettlements.length > 0 ? (
+            <Section header={`ต้องโอน ${groupSettlements.length} รายการ`} as="ul" inset="3rem">
+              {groupSettlements.map((s, i) => settlementRow(i, s))}
+            </Section>
+          ) : (
+            <Section header={`ต้องโอน ${settlements.length} รายการ`} as="ul" inset="3rem">
+              {settlements.map((s, i) => settlementRow(i, s))}
+            </Section>
+          ))}
       </div>
       <TripTabBar tripId={tripId} />
     </div>

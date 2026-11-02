@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { AvatarColorProvider, MemberAvatar } from "@/components/member-avatar";
+import { buttonVariants } from "@/components/ui/button";
+import { Section, row } from "@/components/ui/grouped";
+import { AvatarColorProvider } from "@/components/member-avatar";
+import { MemberGroups } from "@/components/member-groups";
 import { avatarColorKey } from "@/lib/avatar";
+import { formatTripDates } from "@/lib/dates";
 
 export default async function JoinPage({
   params,
@@ -15,7 +18,7 @@ export default async function JoinPage({
 
   const [{ data: trip }, { data: members }, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
-    supabase.from("members").select("name, group_name").eq("trip_id", id).order("created_at"),
+    supabase.from("members").select("id, name, group_name").eq("trip_id", id).order("created_at"),
     supabase.from("bills").select("amount, note").eq("trip_id", id),
   ]);
 
@@ -25,60 +28,48 @@ export default async function JoinPage({
     .filter((bill) => isExpenseEntry(parseBillNote(bill.note).entryType))
     .reduce((s, b) => s + Number(b.amount), 0);
 
+  const dates = formatTripDates(trip.start_date, trip.end_date);
+
   return (
     <AvatarColorProvider keys={(members ?? []).map(avatarColorKey)}>
-    <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm space-y-5">
-        <div className="text-center space-y-1">
-          <p className="font-mono text-xs tracking-[0.2em] text-slate-500">{id}</p>
-          <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900">{trip.name}</h1>
-          {trip.start_date && (
-            <p className="text-sm text-slate-500">
-              {trip.start_date}
-              {trip.end_date ? ` – ${trip.end_date}` : ""}
-            </p>
-          )}
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+3rem)]">
+      <div className="flex-1 space-y-7">
+        <div className="px-4 text-center">
+          <h1 className="text-balance text-title1 font-bold">{trip.name}</h1>
+          {dates && <p className="mt-1 text-subhead text-label-2">{dates}</p>}
         </div>
 
-        <dl className="grid grid-cols-2 divide-x divide-slate-100 rounded-2xl border border-slate-200/80 bg-white py-4 text-center shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-          <div>
-            <dd className="text-2xl font-bold text-slate-900">{(members ?? []).length}</dd>
-            <dt className="mt-0.5 text-xs text-slate-500">สมาชิก</dt>
+        <Section>
+          <div className={`${row} justify-between`}>
+            <span>Trip ID</span>
+            <span className="font-mono tracking-wide text-label-2">{id}</span>
           </div>
-          <div>
-            <dd className="text-2xl font-bold text-slate-900">{(bills ?? []).length}</dd>
-            <dt className="mt-0.5 text-xs text-slate-500">บิล</dt>
+          <div className={`${row} justify-between`}>
+            <span>สมาชิก</span>
+            <span className="tabular-nums text-label-2">{(members ?? []).length} คน</span>
           </div>
-        </dl>
+          <div className={`${row} justify-between`}>
+            <span>บิล</span>
+            <span className="tabular-nums text-label-2">{(bills ?? []).length} รายการ</span>
+          </div>
+          <div className={`${row} justify-between`}>
+            <span>ยอดรวม</span>
+            <span className="tabular-nums text-label-2">
+              {total.toLocaleString("th-TH", { minimumFractionDigits: 0 })} THB
+            </span>
+          </div>
+        </Section>
 
         {(members ?? []).length > 0 && (
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-            <p className="mb-3 text-sm font-semibold text-slate-700">สมาชิกในทริป</p>
-            <div className="flex flex-wrap gap-2">
-              {(members ?? []).map((m, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-sm text-slate-700"
-                >
-                  <MemberAvatar name={m.name} group={m.group_name} size="sm" />
-                  {m.name}
-                </span>
-              ))}
-            </div>
-          </div>
+          <Section header="สมาชิกในทริป">
+            <MemberGroups members={members ?? []} />
+          </Section>
         )}
+      </div>
 
-        {total > 0 && (
-          <div className="rounded-2xl bg-slate-900 p-5 text-center text-white shadow-[0_12px_32px_-12px_rgb(15_23_42/0.55)]">
-            <p className="text-xs text-slate-400">ยอดรวมค่าใช้จ่าย</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums">
-              {total.toLocaleString("th-TH", { minimumFractionDigits: 0 })} ฿
-            </p>
-          </div>
-        )}
-
-        <Link href={`/trips/${id}`} className="block">
-          <Button className="h-12 w-full rounded-xl text-base">เข้าร่วมทริปนี้</Button>
+      <div className="sticky bottom-0 -mx-4 mt-6 px-4 pb-2 pt-3">
+        <Link href={`/trips/${id}`} className={`${buttonVariants({ size: "lg" })} w-full`}>
+          เข้าร่วมทริปนี้
         </Link>
       </div>
     </div>

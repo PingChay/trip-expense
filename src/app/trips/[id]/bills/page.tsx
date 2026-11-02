@@ -6,7 +6,9 @@ import { avatarColorKey } from "@/lib/avatar";
 import { PageHeader } from "@/components/page-header";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
-import { ArrowRight, ChevronRight, Plus, Receipt } from "lucide-react";
+import { Disclosure, Section, pressableRow } from "@/components/ui/grouped";
+import { buttonVariants } from "@/components/ui/button";
+import { ArrowRight, Plus, ReceiptText } from "lucide-react";
 
 type Member = { id: string; name: string; group_name: string | null };
 
@@ -36,12 +38,12 @@ function ParticipantStack({ people }: { people: Member[] }) {
   return (
     <span className="flex items-center">
       {shown.map((person, index) => (
-        <span key={person.id} className={`rounded-full ring-2 ring-white ${index > 0 ? "-ml-1.5" : ""}`}>
+        <span key={person.id} className={`rounded-full ring-2 ring-cell ${index > 0 ? "-ml-1.5" : ""}`}>
           <MemberAvatar name={person.name} group={person.group_name} size="sm" />
         </span>
       ))}
       {extra > 0 && (
-        <span className="-ml-1.5 flex size-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-2 ring-white">
+        <span className="-ml-1.5 flex size-6 items-center justify-center rounded-full bg-fill-2 text-caption2 font-semibold text-label-2 ring-2 ring-cell">
           +{extra}
         </span>
       )}
@@ -90,28 +92,19 @@ export default async function BillsPage({
     <AvatarColorProvider keys={(members ?? []).map(avatarColorKey)}>
       <div className="min-h-screen">
         <PageHeader
+          large
           title="บิลทั้งหมด"
           subtitle={bills?.length ? `${bills.length} รายการ` : undefined}
-          right={
-            <Link
-              href={`/trips/${id}/bills/new`}
-              className="inline-flex h-8 items-center gap-1 rounded-full bg-slate-900 pl-2.5 pr-3 text-[13px] font-medium text-white transition-colors hover:bg-slate-800"
-            >
-              <Plus className="h-4 w-4" /> เพิ่ม
-            </Link>
-          }
         />
 
-        <div className="mx-auto max-w-sm space-y-5 px-4 pb-32 pt-5">
+        <div className="mx-auto max-w-md space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-3">
           {!bills?.length ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-14 text-center">
-              <Receipt className="mx-auto h-9 w-9 text-slate-300" />
-              <p className="mt-3 text-sm font-medium text-slate-700">ยังไม่มีบิล</p>
-              <Link
-                href={`/trips/${id}/bills/new`}
-                className="mt-4 inline-flex h-9 items-center gap-1 rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50"
-              >
-                <Plus className="h-4 w-4" /> เพิ่มบิลแรก
+            <div className="flex flex-col items-center px-6 py-16 text-center">
+              <ReceiptText className="size-12 text-label-3" strokeWidth={1.5} />
+              <p className="mt-3 text-title3 font-bold">ยังไม่มีบิล</p>
+              <p className="mt-1 text-subhead text-label-2">บิลที่เพิ่มจะเรียงตามวัน ล่าสุดอยู่บนสุด</p>
+              <Link href={`/trips/${id}/bills/new`} className={`${buttonVariants({ variant: "secondary" })} mt-5`}>
+                <Plus /> เพิ่มบิลแรก
               </Link>
             </div>
           ) : (
@@ -121,66 +114,67 @@ export default async function BillsPage({
                 if (isExpenseEntry(bill.entryType)) spent.set(bill.currency, (spent.get(bill.currency) ?? 0) + bill.amount);
               }
               return (
-                <section key={day || "undated"} className="space-y-2">
-                  <div className="flex items-baseline justify-between px-1">
-                    <h2 className="text-sm font-semibold text-slate-700">{formatDay(day || null)}</h2>
-                    {spent.size > 0 && (
-                      <p className="text-xs tabular-nums text-slate-500">
+                <Section
+                  key={day || "undated"}
+                  as="ul"
+                  inset="3.75rem"
+                  header={formatDay(day || null)}
+                  action={
+                    spent.size > 0 && (
+                      <p className="shrink-0 text-footnote tabular-nums text-label-2">
                         ใช้ไป{" "}
                         {[...spent.entries()].map(([currency, total]) => `${money(total)} ${currency}`).join(" · ")}
                       </p>
-                    )}
-                  </div>
-                  <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
-                    {dayBills.map((bill) => {
-                      const payment = !isExpenseEntry(bill.entryType);
-                      return (
-                        <li key={bill.id}>
-                          <Link
-                            href={`/trips/${id}/bills/${bill.id}`}
-                            className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                          >
-                            {bill.payer.group_name?.trim() ? (
-                              <GroupAvatar group={bill.payer.group_name.trim()} size="md" />
-                            ) : (
-                              <MemberAvatar name={bill.payer.name} />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="break-words font-medium leading-snug text-slate-900">
-                                {bill.title}
-                                {payment && (
-                                  <span className="ml-1.5 inline-block rounded-full bg-amber-100/80 px-2 py-0.5 align-[1px] text-[11px] font-medium text-amber-800">
-                                    {getBillEntryLabel(bill.entryType)}
-                                  </span>
-                                )}
-                              </p>
-                              {payment ? (
-                                <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                                  <span>{partyLabel(bill.payer)}</span>
-                                  <ArrowRight aria-label="โอนให้" className="h-3 w-3 text-slate-400" />
-                                  <span>{[...new Set(bill.people.map((person: Member) => partyLabel(person)))].join(", ")}</span>
-                                </p>
-                              ) : (
-                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                                  <span>{partyLabel(bill.payer)} จ่าย</span>
-                                  <span className="flex items-center gap-1.5">
-                                    <ParticipantStack people={bill.people} />
-                                    <span>หาร {bill.people.length} คน</span>
-                                  </span>
-                                </div>
+                    )
+                  }
+                >
+                  {dayBills.map((bill) => {
+                    const payment = !isExpenseEntry(bill.entryType);
+                    return (
+                      <li key={bill.id}>
+                        <Link href={`/trips/${id}/bills/${bill.id}`} className={`${pressableRow} items-start py-3`}>
+                          {bill.payer.group_name?.trim() ? (
+                            <GroupAvatar group={bill.payer.group_name.trim()} size="md" />
+                          ) : (
+                            <MemberAvatar name={bill.payer.name} />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words font-medium text-label">
+                              {bill.title}
+                              {payment && (
+                                <span className="ml-1.5 inline-block rounded-full bg-orange/15 px-2 py-0.5 align-[2px] text-caption font-semibold text-orange-ink">
+                                  {getBillEntryLabel(bill.entryType)}
+                                </span>
                               )}
+                            </p>
+                            {payment ? (
+                              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-subhead text-label-2">
+                                <span>{partyLabel(bill.payer)}</span>
+                                <ArrowRight aria-label="โอนให้" className="size-3.5 text-label-3" strokeWidth={2.25} />
+                                <span>{[...new Set(bill.people.map((person: Member) => partyLabel(person)))].join(", ")}</span>
+                              </p>
+                            ) : (
+                              <div className="mt-0.5 space-y-1 text-subhead text-label-2">
+                                <p>{partyLabel(bill.payer)} จ่าย</p>
+                                <p className="flex items-center gap-1.5">
+                                  <ParticipantStack people={bill.people} />
+                                  <span>หาร {bill.people.length} คน</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2 self-center">
+                            <div className="text-right">
+                              <p className="font-semibold tabular-nums text-label">{money(bill.amount)}</p>
+                              <p className="text-caption font-medium text-label-2">{bill.currency}</p>
                             </div>
-                            <div className="shrink-0 text-right">
-                              <p className="font-semibold tabular-nums text-slate-900">{money(bill.amount)}</p>
-                              <p className="text-[11px] font-medium text-slate-400">{bill.currency}</p>
-                            </div>
-                            <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
+                            <Disclosure />
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </Section>
               );
             })
           )}

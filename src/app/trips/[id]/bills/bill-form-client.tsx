@@ -1,20 +1,21 @@
 "use client";
 
-import { Fragment, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
 import { billShares } from "@/lib/balance";
-import { PageHeader, headerIconButton } from "@/components/page-header";
-import { AvatarColorProvider, GroupAvatar, MemberAvatar, useAvatarTint } from "@/components/member-avatar";
+import { PageHeader, headerProminentButton, headerTextButton } from "@/components/page-header";
+import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
+import { Section, row } from "@/components/ui/grouped";
 import { avatarColorKey } from "@/lib/avatar";
-import { ArrowLeft, ChevronDown, Divide, LoaderCircle, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, LoaderCircle } from "lucide-react";
 import type { BillInput } from "@/lib/types";
 
-const fieldLabel = "text-sm font-medium text-slate-700";
-const fieldInput = "h-12 rounded-xl border-input bg-white px-3.5 text-[15px]";
-const fieldError = "text-xs text-destructive";
+/** A borderless text field filling the rest of a grouped row. */
+const rowInput = "h-11 min-w-0 flex-1 bg-transparent text-body text-label outline-none placeholder:text-label-2";
+const fieldError = "text-negative";
+/** Separator inset for participant rows: padding + check + avatar and their gaps. */
+const PARTICIPANT_INSET = "5.875rem";
 
 const lastPayerKey = (tripId: string) => `tripsplit_last_payer_${tripId}`;
 const noopSubscribe = () => () => {};
@@ -27,8 +28,8 @@ function readLastPayer(tripId: string) {
   }
 }
 
-/** One family in the participant picker: a box in the family's colour with a select-all toggle. */
-function FamilyBox({
+/** One family in the participant picker: a grouped section headed by the family, with a select-all toggle. */
+function FamilySection({
   family,
   count,
   allSelected,
@@ -41,26 +42,30 @@ function FamilyBox({
   onToggle: () => void;
   children: ReactNode;
 }) {
-  const tint = useAvatarTint(family);
   return (
-    <div className="rounded-2xl border p-2" style={{ backgroundColor: tint.surface, borderColor: tint.edge }}>
-      <div className="flex items-center gap-2 px-2 pb-2 pt-1">
-        <GroupAvatar group={family} />
-        <p className="min-w-0 flex-1 break-words text-sm font-semibold text-slate-900">
-          {family} <span className="text-xs font-medium" style={{ color: tint.color }}>· {count} คน</span>
-        </p>
+    <Section
+      as="div"
+      inset={PARTICIPANT_INSET}
+      header={
+        <span className="flex items-center gap-2">
+          <GroupAvatar group={family} />
+          <span className="break-words font-semibold text-label">{family}</span>
+          <span>· {count} คน</span>
+        </span>
+      }
+      action={
         <button
           type="button"
           onClick={onToggle}
           aria-pressed={allSelected}
-          className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-medium shadow-[0_1px_2px_rgb(15_23_42/0.08)] transition-colors hover:bg-slate-50"
-          style={{ color: tint.color }}
+          className="-mb-1 -mr-2 h-8 shrink-0 rounded-full px-2 text-subhead text-tint active:opacity-60"
         >
-          {allSelected ? "ยกเลิกครอบครัว" : "เลือกครอบครัว"}
+          {allSelected ? "ไม่เลือกทั้งครอบครัว" : "เลือกทั้งครอบครัว"}
         </button>
-      </div>
+      }
+    >
       {children}
-    </div>
+    </Section>
   );
 }
 
@@ -200,42 +205,40 @@ export function BillFormClient({
     });
   }
 
+  const saving = isPending || isDeleting;
+
   return (
     <AvatarColorProvider keys={members.map(avatarColorKey)}>
     <div className="min-h-screen">
+      <form onSubmit={handleSubmit}>
       <PageHeader
         title={initialData ? "แก้ไขบิล" : "เพิ่มบิล"}
         left={
-          <button type="button" onClick={() => router.back()} aria-label="ย้อนกลับ" className={headerIconButton}>
-            <ArrowLeft className="h-5 w-5" />
+          <button type="button" onClick={() => router.back()} className={headerTextButton}>
+            ยกเลิก
           </button>
         }
         right={
-          deleteAction && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              aria-label="ลบบิล"
-              className={`${headerIconButton} text-red-500 hover:bg-red-50 hover:text-red-600`}
-            >
-              <Trash2 className="h-[18px] w-[18px]" />
-            </button>
-          )
+          <button type="submit" disabled={saving} className={headerProminentButton}>
+            {isPending && <LoaderCircle className="size-4 animate-spin" />}
+            {isPending ? "กำลังบันทึก" : "บันทึก"}
+          </button>
         }
       />
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-6 px-4 pt-5">
-        {/* Amount + Currency */}
-        <div className="space-y-2">
-          <label className={fieldLabel}>จำนวนเงิน *</label>
-          <div
-            className={[
-              "flex h-14 items-center overflow-hidden rounded-xl border bg-white transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
-              errors.amount ? "border-destructive" : "border-input",
-            ].join(" ")}
-          >
+      <div className="mx-auto max-w-md space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-3">
+        {/* Amount + currency, then what it was for */}
+        <Section
+          footer={
+            (errors.amount || errors.title) && (
+              <p className={fieldError}>{[errors.amount, errors.title].filter(Boolean).join(" · ")}</p>
+            )
+          }
+        >
+          <div className={`${row} py-1`}>
+            <label htmlFor="bill-amount" className="sr-only">จำนวนเงิน</label>
             <input
+              id="bill-amount"
               type="number"
               inputMode="decimal"
               step="0.01"
@@ -243,52 +246,52 @@ export function BillFormClient({
               placeholder="0.00"
               autoFocus={!initialData}
               value={amount}
+              aria-invalid={!!errors.amount}
               onChange={(e) => {
                 setAmount(e.target.value);
                 setErrors((er) => ({ ...er, amount: undefined }));
               }}
-              className="h-full min-w-0 flex-1 bg-transparent px-4 text-xl font-semibold tabular-nums text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-300"
+              className="h-16 min-w-0 flex-1 bg-transparent text-large-title font-bold tabular-nums text-label outline-none placeholder:text-label-2"
             />
-            <div className="relative h-full shrink-0 border-l border-slate-200">
+            <div className="relative shrink-0">
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 aria-label="สกุลเงิน"
-                className="h-full w-24 appearance-none bg-slate-50 pl-4 pr-8 text-sm font-semibold text-slate-700 outline-none"
+                className="h-9 appearance-none rounded-full bg-fill-3 pl-3.5 pr-8 text-subhead font-semibold text-tint outline-none"
               >
                 {["THB", "USD", "EUR", "JPY"].map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronsUpDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-tint" strokeWidth={2.5} />
             </div>
           </div>
-          {errors.amount && <p className={fieldError}>{errors.amount}</p>}
-        </div>
-
-        {/* Title */}
-        <div className="space-y-2">
-          <label className={fieldLabel}>ชื่อรายการ *</label>
-          <Input
-            placeholder="เช่น ค่าที่พัก, ค่าอาหารเย็น"
-            value={title}
-            aria-invalid={!!errors.title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setErrors((er) => ({ ...er, title: undefined }));
-            }}
-            className={fieldInput}
-          />
-          {errors.title && <p className={fieldError}>{errors.title}</p>}
-        </div>
+          <div className={row}>
+            <label htmlFor="bill-title" className="sr-only">ชื่อรายการ</label>
+            <input
+              id="bill-title"
+              placeholder="ชื่อรายการ เช่น ค่าที่พัก, ค่าอาหารเย็น"
+              value={title}
+              aria-invalid={!!errors.title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setErrors((er) => ({ ...er, title: undefined }));
+              }}
+              className={rowInput}
+            />
+          </div>
+        </Section>
 
         {/* Payer */}
-        <div className="space-y-2">
-          <label id="payer-label" className={fieldLabel}>ใครจ่าย *</label>
+        <Section
+          header={<span id="payer-label">ใครจ่าย</span>}
+          footer={errors.payer && <p className={fieldError}>{errors.payer}</p>}
+        >
           <div
             role="radiogroup"
             aria-labelledby="payer-label"
-            className="flex flex-wrap gap-2"
+            className="flex flex-wrap gap-2 p-3"
           >
             {payerOptions.map((option) => {
               const selected = option.memberIds.includes(payerId);
@@ -304,10 +307,8 @@ export function BillFormClient({
                     setErrors((er) => ({ ...er, payer: undefined }));
                   }}
                   className={[
-                    "flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-sm transition-[background-color,border-color,color] duration-150",
-                    selected
-                      ? "border-slate-900 bg-slate-900 font-medium text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
+                    "flex min-h-10 shrink-0 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-subhead transition-[background-color,color] duration-150 active:scale-[0.97]",
+                    selected ? "bg-tint font-semibold text-white" : "bg-fill-3 text-label",
                   ].join(" ")}
                 >
                   {option.family ? (
@@ -320,58 +321,58 @@ export function BillFormClient({
               );
             })}
           </div>
-          {errors.payer && <p className={fieldError}>{errors.payer}</p>}
-        </div>
+        </Section>
 
         {/* Participants */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className={fieldLabel}>ผู้ร่วมหาร *</label>
-            <div className="flex items-center gap-1 text-xs">
+        <div className="space-y-4">
+          <div className="flex items-end justify-between gap-3 px-4">
+            <h2 className="text-footnote text-label-2">ผู้ร่วมหาร · เลือก {selectedCount} จาก {members.length} คน</h2>
+            <div className="-mb-1 -mr-2 flex items-center">
               <button
                 type="button"
                 onClick={() => setParticipants(members.map((m) => m.id))}
-                className="rounded-full px-2 py-1 font-medium text-slate-700 hover:bg-slate-200/60"
+                className="h-8 rounded-full px-2 text-subhead text-tint active:opacity-60"
               >
                 เลือกทั้งหมด
               </button>
               <button
                 type="button"
                 onClick={() => setParticipants([])}
-                className="rounded-full px-2 py-1 text-slate-500 hover:bg-slate-200/60"
+                className="h-8 rounded-full px-2 text-subhead text-tint active:opacity-60"
               >
-                ล้างทั้งหมด
+                ล้าง
               </button>
             </div>
           </div>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={usePersonal}
-            onClick={() => {
-              setUsePersonal((prev) => !prev);
-              setErrors((er) => ({ ...er, personal: undefined }));
-            }}
-            className="flex w-full items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-left transition-colors hover:border-slate-300"
+          <Section
+            footer="ใส่ยอดที่บางคนจ่ายเองตามจริง คนที่เหลือหารยอดที่เหลือเท่ากัน"
           >
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-slate-900">ระบุราคาเฉพาะคน</span>
-              <span className="mt-0.5 block text-xs leading-snug text-slate-500">
-                ใส่ยอดที่บางคนจ่ายเองตามจริง คนที่เหลือหารยอดที่เหลือเท่ากัน
-              </span>
-            </span>
-            <span
-              aria-hidden
-              className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${usePersonal ? "bg-slate-900" : "bg-slate-300"}`}
-            >
-              <span
-                className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out ${usePersonal ? "translate-x-[18px]" : "translate-x-0.5"}`}
+            <label className={`${row} cursor-pointer`}>
+              <span className="flex-1">ระบุราคาเฉพาะคน</span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={usePersonal}
+                onChange={() => {
+                  setUsePersonal((prev) => !prev);
+                  setErrors((er) => ({ ...er, personal: undefined }));
+                }}
+                className="peer sr-only"
               />
-            </span>
-          </button>
+              {/* iOS switch: 51×31, green when on */}
+              <span
+                aria-hidden
+                className={`relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tint ${usePersonal ? "bg-green" : "bg-fill"}`}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow-[0_3px_8px_rgb(0_0_0/0.15),0_1px_1px_rgb(0_0_0/0.16)] transition-transform duration-200 ease-out ${usePersonal ? "translate-x-5" : ""}`}
+                />
+              </span>
+            </label>
+          </Section>
 
-          {/* Families in their own colour boxes, members without a family last */}
+          {/* Families as their own sections, members without a family last */}
           {(() => {
             const families = new Map<string, Member[]>();
             const solo: Member[] = [];
@@ -382,30 +383,30 @@ export function BillFormClient({
             }
 
             const renderRow = (m: Member) => {
-                      const checked = participants.includes(m.id);
+              const checked = participants.includes(m.id);
               return (
-                <div key={m.id} className="transition-colors hover:bg-slate-50">
-                  <label className="flex cursor-pointer items-center gap-3 px-4 py-2.5">
+                <div key={m.id}>
+                  <label className={`${row} cursor-pointer transition-colors duration-100 active:bg-pressed`}>
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleParticipant(m.id)}
-                      className="size-[18px] shrink-0 rounded"
+                      className="ios-check"
                     />
-                    <MemberAvatar name={m.name} group={m.group_name} size="sm" />
-                    <span className={`flex-1 text-sm ${checked ? "text-slate-900" : "text-slate-400"}`}>{m.name}</span>
+                    <MemberAvatar name={m.name} group={m.group_name} />
+                    <span className={`min-w-0 flex-1 break-words ${checked ? "text-label" : "text-label-2"}`}>{m.name}</span>
                     {amountNum > 0 && checked && (
                       <span
-                        className={`text-xs tabular-nums ${personalAmounts[m.id] ? "font-semibold text-slate-900" : "text-slate-500"}`}
+                        className={`shrink-0 text-subhead tabular-nums ${personalAmounts[m.id] ? "font-semibold text-label" : "text-label-2"}`}
                       >
-                        {formatMoney(shares[m.id] ?? 0)} {currency}
+                        {formatMoney(shares[m.id] ?? 0)}
                       </span>
                     )}
                   </label>
                   {usePersonal && checked && (
-                    <div className="-mt-1 flex items-center gap-2 pb-2.5 pl-[4.25rem] pr-4">
-                      <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">ราคาเฉพาะ</span>
-                      <div className="flex h-9 min-w-0 flex-1 items-center rounded-lg border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
+                    <div className="-mt-1 flex items-center gap-3 pb-2.5 pl-[5.875rem] pr-4">
+                      <span className="shrink-0 whitespace-nowrap text-footnote text-label-2">ราคาเฉพาะ</span>
+                      <div className="flex h-9 min-w-0 flex-1 items-center rounded-lg bg-fill-3 focus-within:ring-2 focus-within:ring-tint/40">
                         <input
                           type="number"
                           inputMode="decimal"
@@ -419,9 +420,9 @@ export function BillFormClient({
                             setPersonalInputs((prev) => ({ ...prev, [m.id]: value }));
                             setErrors((er) => ({ ...er, personal: undefined }));
                           }}
-                          className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm tabular-nums outline-none placeholder:text-slate-300"
+                          className="h-full min-w-0 flex-1 bg-transparent px-3 text-subhead tabular-nums outline-none placeholder:text-label-2"
                         />
-                        <span className="pr-3 text-xs text-slate-400">{currency}</span>
+                        <span className="pr-3 text-footnote text-label-2">{currency}</span>
                       </div>
                     </div>
                   )}
@@ -429,21 +430,13 @@ export function BillFormClient({
               );
             };
 
-            const rowList = (list: Member[]) => (
-              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white">
-                {list.map((m) => (
-                  <Fragment key={m.id}>{renderRow(m)}</Fragment>
-                ))}
-              </div>
-            );
-
             return (
-              <div className="space-y-2">
+              <>
                 {[...families.entries()].map(([family, familyMembers]) => {
                   const ids = familyMembers.map((m) => m.id);
                   const allSelected = ids.every((id) => participants.includes(id));
                   return (
-                    <FamilyBox
+                    <FamilySection
                       key={family}
                       family={family}
                       count={familyMembers.length}
@@ -455,137 +448,136 @@ export function BillFormClient({
                         setErrors((er) => ({ ...er, participants: undefined }));
                       }}
                     >
-                      {rowList(familyMembers)}
-                    </FamilyBox>
+                      {familyMembers.map(renderRow)}
+                    </FamilySection>
                   );
                 })}
-                {solo.length > 0 &&
-                  (families.size > 0 ? (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
-                      <p className="px-2 pb-2 pt-1 text-xs font-medium text-slate-500">ไม่มีกลุ่ม</p>
-                      {rowList(solo)}
-                    </div>
-                  ) : (
-                    <div className="overflow-hidden rounded-2xl border border-slate-200/80">{rowList(solo)}</div>
-                  ))}
-              </div>
+                {solo.length > 0 && (
+                  <Section inset={PARTICIPANT_INSET} header={families.size > 0 ? "ไม่มีกลุ่ม" : undefined}>
+                    {solo.map(renderRow)}
+                  </Section>
+                )}
+              </>
             );
           })()}
 
-          {amountNum > 0 && selectedCount > 0 && !personalMismatch && (
-            <div className="flex items-center gap-2 rounded-xl bg-slate-900/[0.05] px-4 py-2.5 text-sm text-slate-700">
-              <Divide className="h-4 w-4 shrink-0 text-slate-400" />
-              <span>
-                {personalTotal > 0 && (
-                  <span className="block text-xs text-slate-500">
-                    ราคาเฉพาะคน {formatMoney(personalTotal)}
-                    {evenCount > 0 && ` · ที่เหลือ ${formatMoney(remainder)} หาร ${evenCount} คน`}
-                  </span>
-                )}
-                {evenCount > 0 ? (
-                  <>
-                    <span className="font-semibold tabular-nums text-slate-900">
+          {/* the split, or why it can't be made */}
+          {(amountNum > 0 && selectedCount > 0 && !personalMismatch) ||
+          personalMismatch ||
+          errors.personal ||
+          errors.participants ? (
+            <Section
+              footer={
+                <>
+                  {(personalMismatch || errors.personal) && (
+                    <p role="alert" className={fieldError}>{personalMismatch ? personalMismatchMessage : errors.personal}</p>
+                  )}
+                  {errors.participants && <p className={fieldError}>{errors.participants}</p>}
+                  {!personalMismatch && personalTotal > 0 && (
+                    <p>
+                      ราคาเฉพาะคน {formatMoney(personalTotal)}
+                      {evenCount > 0 && ` · ที่เหลือ ${formatMoney(remainder)} หาร ${evenCount} คน`}
+                    </p>
+                  )}
+                </>
+              }
+            >
+              {amountNum > 0 && selectedCount > 0 && !personalMismatch && (
+                <div className={`${row} justify-between`}>
+                  <span>{evenCount > 0 ? `หาร ${evenCount} คน` : "ทุกคนจ่ายตามราคาเฉพาะ"}</span>
+                  {evenCount > 0 && (
+                    <span className="font-semibold tabular-nums">
                       {formatMoney(perPerson)} {currency} / คน
                     </span>
-                    &nbsp;·&nbsp;{evenCount} คน
-                  </>
-                ) : (
-                  <span className="font-semibold text-slate-900">ทุกคนจ่ายตามราคาเฉพาะ</span>
-                )}
-              </span>
-            </div>
-          )}
-          {(personalMismatch || errors.personal) && (
-            <p role="alert" className={fieldError}>{personalMismatch ? personalMismatchMessage : errors.personal}</p>
-          )}
-          {errors.participants && (
-            <p className={fieldError}>{errors.participants}</p>
-          )}
+                  )}
+                </div>
+              )}
+            </Section>
+          ) : null}
         </div>
 
         {/* Rarely changed details stay folded so the common path is short */}
         <details
           open={showMore}
           onToggle={(e) => setShowMore(e.currentTarget.open)}
-          className="group rounded-2xl border border-slate-200/80 bg-white"
+          className="group overflow-hidden rounded-group bg-cell"
         >
-          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+          <summary className={`${row} cursor-pointer list-none transition-colors duration-100 active:bg-pressed [&::-webkit-details-marker]:hidden`}>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-slate-900">เพิ่มเติม</span>
-              <span className="mt-0.5 block truncate text-xs text-slate-500">
+              <span className="block">เพิ่มเติม</span>
+              <span className="block truncate text-footnote text-label-2">
                 {[getBillEntryLabel(entryType), date, note.trim() ? "มีหมายเหตุ" : "ไม่มีหมายเหตุ"].join(" · ")}
               </span>
             </span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
+            <ChevronDown className="size-4 shrink-0 text-label-3 transition-transform duration-200 group-open:rotate-180" strokeWidth={2.5} />
           </summary>
-          <div className="space-y-6 border-t border-slate-100 px-4 pb-4 pt-4">
-        <div className="space-y-2">
-          <label className={fieldLabel}>ประเภทบิล</label>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { value: "expense", description: "นับรวมยอดค่าใช้จ่ายและยอดหาร" },
-              { value: "advance", description: "โอนคืน/จ่ายให้กัน ไม่นับรวมเป็นค่าใช้จ่าย" },
-            ] as const).map((option) => {
-              const active = entryType === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setEntryType(option.value)}
-                  className={[
-                    "rounded-xl border px-3.5 py-3 text-left transition-[background-color,border-color,box-shadow] duration-150",
-                    active
-                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_6px_16px_-8px_rgb(15_23_42/0.6)]"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
-                  ].join(" ")}
-                >
-                  <p className="text-sm font-semibold">{getBillEntryLabel(option.value)}</p>
-                  <p className={`mt-1 text-xs leading-snug ${active ? "text-slate-300" : "text-slate-500"}`}>
-                    {option.description}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          <div className="ios-list border-t-[0.5px] border-separator">
+            <div className="space-y-2 px-4 py-3">
+              <p id="entry-type-label" className="text-footnote text-label-2">ประเภทบิล</p>
+              <div role="radiogroup" aria-labelledby="entry-type-label" className="flex rounded-full bg-fill-3 p-0.5">
+                {(["expense", "advance"] as const).map((value) => {
+                  const active = entryType === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setEntryType(value)}
+                      className={[
+                        "h-8 flex-1 rounded-full text-footnote font-semibold transition-[background-color,box-shadow,color] duration-200",
+                        active ? "bg-cell text-label shadow-[0_3px_8px_rgb(0_0_0/0.12),0_3px_1px_rgb(0_0_0/0.04)] dark:bg-[#636366]" : "text-label",
+                      ].join(" ")}
+                    >
+                      {getBillEntryLabel(value)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-footnote text-label-2">
+                {entryType === "expense"
+                  ? "นับรวมยอดค่าใช้จ่ายและยอดหาร"
+                  : "โอนคืน/จ่ายให้กัน ไม่นับรวมเป็นค่าใช้จ่าย แต่นำไปหักลบยอดที่ต้องโอน"}
+              </p>
+            </div>
 
-        {/* Date */}
-        <div className="space-y-2">
-          <label className={fieldLabel}>วันที่</label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={fieldInput}
-          />
-        </div>
+            <label className={`${row} justify-between`}>
+              <span>วันที่</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="h-9 rounded-lg bg-fill-3 px-3 text-body text-label outline-none focus-visible:ring-2 focus-visible:ring-tint/40"
+              />
+            </label>
 
-        {/* Note */}
-        <div className="space-y-2">
-          <label className={fieldLabel}>หมายเหตุ</label>
-          <textarea
-            placeholder="(ไม่บังคับ)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="min-h-[88px] w-full resize-none rounded-xl border border-input bg-white px-3.5 py-3 text-[15px] outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-          />
-          {entryType === "advance" && (
-            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-              การจ่ายเงินไม่ถูกรวมในยอดค่าใช้จ่าย แต่นำไปหักลบยอดที่ต้องโอน
-            </p>
-          )}
-        </div>
-
+            <div className="px-4 py-2.5">
+              <label htmlFor="bill-note" className="sr-only">หมายเหตุ</label>
+              <textarea
+                id="bill-note"
+                placeholder="หมายเหตุ (ไม่บังคับ)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="min-h-[5.5rem] w-full resize-none bg-transparent text-body text-label outline-none placeholder:text-label-2"
+              />
+            </div>
           </div>
         </details>
-        {/* Save stays reachable without scrolling past every field */}
-        <div className="sticky bottom-0 -mx-4 border-t border-slate-200/80 bg-background/90 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur-md">
-          <Button type="submit" className="h-12 w-full rounded-xl text-[15px]" disabled={isPending || isDeleting}>
-            {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
-            {isPending ? "กำลังบันทึก..." : "บันทึก"}
-          </Button>
-        </div>
+
+        {deleteAction && (
+          <Section>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={saving}
+              className={`${row} w-full justify-center text-negative transition-colors duration-100 active:bg-pressed disabled:opacity-50`}
+            >
+              {isDeleting && <LoaderCircle className="size-4 animate-spin" />}
+              {isDeleting ? "กำลังลบ..." : "ลบบิล"}
+            </button>
+          </Section>
+        )}
+      </div>
       </form>
     </div>
     </AvatarColorProvider>

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, House, LoaderCircle, Plus, Receipt, Users } from "lucide-react";
+import { ChartColumnBig, House, LoaderCircle, Plus, ReceiptText, Users } from "lucide-react";
 
 type TripTab = {
   href: (tripId: string) => string;
@@ -23,7 +23,7 @@ const tabs: readonly TripTab[] = [
   {
     href: (tripId: string) => `/trips/${tripId}/bills`,
     label: "บิลทั้งหมด",
-    icon: Receipt,
+    icon: ReceiptText,
     match: (pathname: string, tripId: string) =>
       pathname === `/trips/${tripId}/bills` || /^\/trips\/[^/]+\/bills\/[^/]+$/.test(pathname),
   },
@@ -43,11 +43,12 @@ const tabs: readonly TripTab[] = [
   {
     href: (tripId: string) => `/trips/${tripId}/report`,
     label: "สรุป",
-    icon: BarChart3,
+    icon: ChartColumnBig,
     match: (pathname: string, tripId: string) => pathname === `/trips/${tripId}/report`,
   },
 ];
 
+/** iOS 26 floating tab bar: a glass capsule above the home indicator, the add-bill button in its centre. */
 export function TripTabBar({ tripId }: { tripId: string }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -67,12 +68,9 @@ export function TripTabBar({ tripId }: { tripId: string }) {
   return (
     <nav
       aria-busy={isPending}
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/80 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
     >
-      <div
-        className={`absolute inset-x-0 top-0 h-0.5 origin-left bg-slate-900 transition-[opacity,transform] duration-500 ease-out ${isPending ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"}`}
-      />
-      <div className="mx-auto grid max-w-sm grid-cols-5 items-end gap-1 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5">
+      <div className="glass pointer-events-auto mx-auto grid h-16 max-w-md grid-cols-5 items-center rounded-full p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const href = tab.href(tripId);
@@ -98,36 +96,27 @@ export function TripTabBar({ tripId }: { tripId: string }) {
                 });
               }}
               className={[
-                "group flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
-                tab.emphasis
-                  ? "-mt-6 text-[11px] font-semibold text-slate-900"
-                  : [
-                      "min-h-14 justify-center px-1 text-[11px] font-medium transition-colors",
-                      active ? "text-slate-900" : "text-slate-400 hover:text-slate-700",
-                    ].join(" "),
-                pending ? "opacity-80" : "",
+                "group flex h-full flex-col items-center justify-center gap-0.5 rounded-full text-caption2 font-semibold outline-none transition-[background-color,color] duration-200 focus-visible:ring-2 focus-visible:ring-tint",
+                tab.emphasis ? "text-tint" : active ? "bg-fill-3 text-tint" : "text-label hover:text-tint",
               ].join(" ")}
             >
               <span
                 className={[
-                  "flex items-center justify-center transition-[transform,background-color,box-shadow] duration-200 ease-out",
-                  tab.emphasis
-                    ? "size-14 rounded-full border-4 border-background bg-slate-900 text-white shadow-[0_8px_20px_-6px_rgb(15_23_42/0.55)] group-active:scale-95"
-                    : ["h-7 w-12 rounded-full", active ? "bg-slate-900/[0.07]" : "group-hover:bg-slate-100"].join(" "),
-                  tab.emphasis && active ? "scale-105" : "",
+                  "flex items-center justify-center transition-transform duration-150 ease-out group-active:scale-90",
+                  tab.emphasis ? "size-8 rounded-full bg-tint text-white" : "size-7",
                   pending ? "animate-pulse" : "",
                 ].join(" ")}
               >
                 {pending ? (
-                  <LoaderCircle className={`${tab.emphasis ? "h-5 w-5" : "h-[18px] w-[18px]"} animate-spin`} />
+                  <LoaderCircle className="size-5 animate-spin" />
                 ) : (
                   <Icon
-                    className={tab.emphasis ? "h-6 w-6" : "h-[18px] w-[18px]"}
-                    strokeWidth={active || tab.emphasis ? 2.25 : 1.75}
+                    className={tab.emphasis ? "size-5" : "size-6"}
+                    strokeWidth={tab.emphasis ? 2.75 : active ? 2.25 : 1.75}
                   />
                 )}
               </span>
-              <span>{pending ? "กำลังเปิด" : tab.label}</span>
+              <span className="max-w-full truncate px-0.5">{pending ? "กำลังเปิด" : tab.label}</span>
             </Link>
           );
         })}
