@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { billCategory, isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { spendingByCategory } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
 import { fetchMembersWithPromptPay, membersByLabel, payerIdByLabel, promptPayByLabel } from "@/lib/members";
 import { billShares, computeGroupSettlements, computeSettlementMultiCurrency } from "@/lib/balance";
@@ -38,6 +39,7 @@ export default async function ReportPage({
       amount: Number(bill.amount),
       entryType: parsedNote.entryType,
       personalAmounts: parsedNote.personalAmounts,
+      category: billCategory(bill.title, parsedNote.category),
       note: parsedNote.note,
     };
   });
@@ -94,6 +96,7 @@ export default async function ReportPage({
     amount: b.amount,
     currency: b.currency,
     entryType: b.entryType,
+    category: b.category,
     payerName: memberMap[b.payer_id] ?? "-",
     date: b.date ?? null,
     shares: (b.participants as string[]).map((pid) => ({
@@ -103,6 +106,8 @@ export default async function ReportPage({
     })),
     };
   });
+
+  const categorySpending = spendingByCategory(expenseBills);
 
   // compute per-person summary grouped by currency
   const advanceBills = normalizedBills.filter((bill) => !isExpenseEntry(bill.entryType));
@@ -144,6 +149,7 @@ export default async function ReportPage({
     <ReportClient
       tripId={id}
       billBreakdown={billBreakdown}
+      categorySpending={categorySpending}
       perPerson={perPerson}
       groupSummaries={groupSummaries}
       settlements={settlements}

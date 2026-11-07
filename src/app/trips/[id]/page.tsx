@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { billCategory, isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { spendingByCategory } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
-import { fetchMembersWithPromptPay, membersByLabel, payerIdByLabel, promptPayByLabel } from "@/lib/members";
-import { computeGroupSettlements } from "@/lib/balance";
+import { fetchMembersWithPromptPay } from "@/lib/members";
 import { ShareButton } from "./share-button";
 import { TripTracker } from "@/components/trip-tracker";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { PageHeader, headerIconButton } from "@/components/page-header";
 import { AvatarColorProvider } from "@/components/member-avatar";
 import { MemberGroups } from "@/components/member-groups";
+import { CategoryPie } from "@/components/category-pie";
 import { avatarColorKey } from "@/lib/avatar";
 import { formatTripDates } from "@/lib/dates";
-import { TransferParties } from "@/components/transfer-parties";
-import { SettlementQr } from "@/components/promptpay-qr";
-import { Check, ChevronLeft, PlaneTakeoff, ReceiptText } from "lucide-react";
-import { Disclosure, Section, pressableRow, row } from "@/components/ui/grouped";
+import { ChevronLeft, PlaneTakeoff, ReceiptText } from "lucide-react";
+import { Section } from "@/components/ui/grouped";
 
 export default async function TripDashboard({
   params,
@@ -27,14 +26,20 @@ export default async function TripDashboard({
   const [{ data: trip }, members, { data: bills }] = await Promise.all([
     supabase.from("trips").select("*").eq("id", id).maybeSingle(),
     fetchMembersWithPromptPay<{ id: string; name: string; group_name: string | null }>(id, "id, name, group_name"),
-    supabase.from("bills").select("id, amount, payer_id, participants, currency, note").eq("trip_id", id),
+    supabase.from("bills").select("id, title, amount, payer_id, participants, currency, note").eq("trip_id", id),
   ]);
 
   if (!trip) notFound();
 
   const normalizedBills = (bills ?? []).map((bill) => {
-    const { entryType, personalAmounts } = parseBillNote(bill.note);
-    return { ...bill, amount: Number(bill.amount), entryType, personalAmounts };
+    const { entryType, personalAmounts, category } = parseBillNote(bill.note);
+    return {
+      ...bill,
+      amount: Number(bill.amount),
+      entryType,
+      personalAmounts,
+      category: billCategory(bill.title, category),
+    };
   });
   const expenseBills = normalizedBills.filter((bill) => isExpenseEntry(bill.entryType));
 
@@ -44,15 +49,10 @@ export default async function TripDashboard({
     return acc;
   }, {} as Record<string, number>);
 
+  const categorySpending = spendingByCategory(expenseBills);
+
   const dateRange = formatTripDates(trip.start_date, trip.end_date);
 
-  const settlements = computeGroupSettlements(members ?? [], normalizedBills);
-  const SETTLEMENT_PREVIEW = 3;
-  const promptPayTargets = promptPayByLabel(members ?? []);
-  const payerIds = payerIdByLabel(members ?? []);
-  // the setup button only makes sense once members.promptpay exists
-  const promptPayEnabled = (members ?? []).some((m) => "promptpay" in m);
-  const candidatesByLabel = membersByLabel(members ?? []);
   const memberCount = (members ?? []).length;
   const billCount = (bills ?? []).length;
 
@@ -126,60 +126,30 @@ export default async function TripDashboard({
           </dl>
         </section>
 
-        {/* Who pays whom: the question people open the trip to answer */}
-        {settlements.length > 0 && (
-          <Section header="ต้องโอนเงิน" as="ul" inset="3rem">
-            {settlements.slice(0, SETTLEMENT_PREVIEW).map((s) => (
-              <li key={`${s.fromId}-${s.toId}-${s.currency}`} className={`${row} justify-between`}>
-                <TransferParties from={s.fromName} to={s.toName} fromIsGroup={s.fromIsGroup} toIsGroup={s.toIsGroup} />
-                <div className="flex shrink-0 items-center gap-3">
-                  <p className="text-right font-semibold tabular-nums">
-                    {s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    <span className="block text-caption font-medium text-label-2">{s.currency}</span>
-                  </p>
-                  <SettlementQr
-                    target={promptPayTargets[s.toName]}
-                    tripId={id}
-                    from={s.fromName}
-                    fromMemberId={payerIds[s.fromName]}
-                    to={s.toName}
-                    amount={s.amount}
-                    currency={s.currency}
-                    setupCandidates={promptPayEnabled ? candidatesByLabel[s.toName] : undefined}
-                  />
-                </div>
-              </li>
-            ))}
-            <li>
-              <Link href={`/trips/${id}/report`} className={`${pressableRow} justify-between text-tint`}>
-                {settlements.length > SETTLEMENT_PREVIEW
-                  ? `ดูการโอนทั้งหมด ${settlements.length} รายการ`
-                  : "ดูสรุปโอนเงิน"}
-                <Disclosure />
+        {/* Where the money went, one pie per currency */}
+        {categorySpending.map((spending) => (
+          <Section
+            key={spending.currency}
+            header={categorySpending.length > 1 ? `ใช้จ่ายตามหมวด · ${spending.currency}` : "ใช้จ่ายตามหมวด"}
+            action={
+              <Link
+                href={`/trips/${id}/report`}
+                className="-mb-1 -mr-2 inline-flex h-8 items-center rounded-full px-2 text-subhead text-tint active:opacity-60"
+              >
+                ดูสรุป
               </Link>
-            </li>
+            }
+          >
+            <CategoryPie spending={spending} />
           </Section>
-        )}
+        ))}
 
-        {/* Per-person detail lives on the summary page; here only what needs doing */}
-        {normalizedBills.length === 0 ? (
+        {normalizedBills.length === 0 && (
           <section className="flex flex-col items-center px-6 py-8 text-center">
             <ReceiptText className="size-12 text-label-3" strokeWidth={1.5} />
             <p className="mt-3 text-title3 font-bold">ยังไม่มีบิล</p>
             <p className="mt-1 text-subhead text-label-2">กดปุ่ม + ด้านล่างเพื่อเพิ่มบิลแรกของทริป</p>
           </section>
-        ) : (
-          settlements.length === 0 && (
-            <Section>
-              <Link href={`/trips/${id}/report`} className={pressableRow}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green text-white">
-                  <Check className="size-[18px]" strokeWidth={3} />
-                </span>
-                <span className="flex-1">ไม่ต้องโอน ทุกคนจ่ายพอดี</span>
-                <Disclosure />
-              </Link>
-            </Section>
-          )
         )}
 
         {/* Who is on the trip, family by family */}

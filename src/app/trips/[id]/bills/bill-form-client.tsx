@@ -4,6 +4,8 @@ import { useState, useSyncExternalStore, useTransition, type ReactNode } from "r
 import { useRouter } from "next/navigation";
 import { getBillEntryLabel, type BillEntryType, type PersonalAmounts } from "@/lib/bill-entry";
 import { billShares } from "@/lib/balance";
+import { BILL_CATEGORIES, CATEGORY_LABELS, guessCategory, type BillCategory } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { PageHeader, headerProminentButton, headerTextButton } from "@/components/page-header";
 import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
 import { Section, row } from "@/components/ui/grouped";
@@ -125,6 +127,10 @@ export function BillFormClient({
   const [date, setDate] = useState(initialData?.date ?? today);
   const [note, setNote] = useState(initialData?.note ?? "");
   const [entryType, setEntryType] = useState<BillEntryType>(initialData?.entryType ?? "expense");
+  // null follows the title ("ข้าวเย็น" → อาหาร) until a category is tapped
+  const [categoryChoice, setCategoryChoice] = useState<BillCategory | null>(initialData?.category ?? null);
+  const guessedCategory = guessCategory(title);
+  const category = categoryChoice ?? guessedCategory;
   const [showMore, setShowMore] = useState(
     initialData?.entryType === "advance" || Boolean(initialData?.note?.trim())
   );
@@ -193,7 +199,7 @@ export function BillFormClient({
       localStorage.setItem(lastPayerKey(tripId), payerId);
     } catch {}
     startTransition(async () => {
-      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType, personalAmounts });
+      await saveAction({ title, amount: amountNum, currency, payerId, participants, date, note, entryType, personalAmounts, category });
     });
   }
 
@@ -282,6 +288,36 @@ export function BillFormClient({
             />
           </div>
         </Section>
+
+        {/* Category: payments are not spending, so they have none */}
+        {entryType === "expense" && (
+          <Section
+            header={<span id="category-label">หมวดหมู่</span>}
+            footer={!categoryChoice && guessedCategory && "เลือกให้จากชื่อรายการ แตะเพื่อเปลี่ยน"}
+          >
+            <div role="radiogroup" aria-labelledby="category-label" className="flex flex-wrap gap-2 p-3">
+              {BILL_CATEGORIES.map((value) => {
+                const selected = category === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setCategoryChoice(value)}
+                    className={[
+                      "flex min-h-10 shrink-0 items-center gap-2 rounded-full py-1.5 pl-2 pr-4 text-subhead transition-[background-color,color] duration-150 active:scale-[0.97]",
+                      selected ? "bg-tint font-semibold text-white" : "bg-fill-3 text-label",
+                    ].join(" ")}
+                  >
+                    <CategoryIcon category={value} size="sm" decorative />
+                    {CATEGORY_LABELS[value]}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        )}
 
         {/* Payer */}
         <Section

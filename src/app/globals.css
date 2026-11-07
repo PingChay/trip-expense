@@ -56,6 +56,8 @@
   /* family colours: the element sets --hue, the appearance sets lightness and chroma */
   --color-hue-avatar: oklch(var(--hue-avatar-l) var(--hue-avatar-c) var(--hue));
   --color-hue-ink: oklch(var(--hue-ink-l) var(--hue-ink-c) var(--hue));
+  /* bill categories: the element sets --cat to one of the --ios-cat-* tokens below */
+  --color-cat: var(--cat);
 
   --radius-group: 1.25rem;
 
@@ -106,6 +108,14 @@
   --ios-pass: #1c1c1e;
   --ios-pass-label: rgb(235 235 245 / 0.6);
 
+  /* bill categories, in their fixed order; adjacent pairs pass the colour-blind checks in both appearances */
+  --ios-cat-food: #eb6834;
+  --ios-cat-stay: #2a78d6;
+  --ios-cat-transport: #1baf7a;
+  --ios-cat-activity: #eda100;
+  --ios-cat-shopping: #e87ba4;
+  --ios-cat-other: #8e8e93;
+
   --hue-avatar-l: 0.92;
   --hue-avatar-c: 0.06;
   --hue-ink-l: 0.42;
@@ -134,6 +144,13 @@
     --ios-positive: #30d158;
     --ios-negative: #ff6961;
     --ios-pass: #2c2c2e;
+
+    --ios-cat-food: #d95926;
+    --ios-cat-stay: #3987e5;
+    --ios-cat-transport: #199e70;
+    --ios-cat-activity: #c98500;
+    --ios-cat-shopping: #d55181;
+    --ios-cat-other: #7c7c80;
 
     --hue-avatar-l: 0.36;
     --hue-avatar-c: 0.07;

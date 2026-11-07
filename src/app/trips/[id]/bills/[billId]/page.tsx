@@ -36,6 +36,7 @@ export default async function EditBillPage({
     note: parsedNote.note,
     entryType: parsedNote.entryType,
     personalAmounts: parsedNote.personalAmounts,
+    category: parsedNote.category,
   };
 
   const boundUpdate = updateBill.bind(null, billId, id);

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getBillEntryLabel, isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { billCategory, getBillEntryLabel, isExpenseEntry, parseBillNote } from "@/lib/bill-entry";
+import { CATEGORY_LABELS, type BillCategory } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
 import { avatarColorKey } from "@/lib/avatar";
 import { PageHeader } from "@/components/page-header";
 import { TripTabBar } from "@/components/trip-tab-bar";
 import { AvatarColorProvider, GroupAvatar, MemberAvatar } from "@/components/member-avatar";
+import { CategoryIcon } from "@/components/category-icon";
 import { Disclosure, Section, pressableRow } from "@/components/ui/grouped";
 import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight, Plus, ReceiptText } from "lucide-react";
@@ -73,13 +75,18 @@ export default async function BillsPage({
 
   const memberById = new Map<string, Member>((members ?? []).map((m) => [m.id, m]));
   const unknown = (memberId: string): Member => ({ id: memberId, name: "-", group_name: null });
-  const normalizedBills = (bills ?? []).map((bill) => ({
-    ...bill,
-    amount: Number(bill.amount),
-    entryType: parseBillNote(bill.note).entryType,
-    payer: memberById.get(bill.payer_id) ?? unknown(bill.payer_id),
-    people: (bill.participants as string[]).map((pid): Member => memberById.get(pid) ?? unknown(pid)),
-  }));
+  const normalizedBills = (bills ?? []).map((bill) => {
+    const parsedNote = parseBillNote(bill.note);
+    const category = billCategory(bill.title, parsedNote.category);
+    return {
+      ...bill,
+      amount: Number(bill.amount),
+      entryType: parsedNote.entryType,
+      category,
+      payer: memberById.get(bill.payer_id) ?? unknown(bill.payer_id),
+      people: (bill.participants as string[]).map((pid): Member => memberById.get(pid) ?? unknown(pid)),
+    };
+  });
 
   // already newest first; keep that order while grouping by day
   const days = new Map<string, typeof normalizedBills>();
@@ -155,7 +162,12 @@ export default async function BillsPage({
                               </p>
                             ) : (
                               <div className="mt-0.5 space-y-1 text-subhead text-label-2">
-                                <p>{partyLabel(bill.payer)} จ่าย</p>
+                                <p className="flex items-center gap-1.5">
+                                  <CategoryIcon category={bill.category as BillCategory} size="sm" decorative />
+                                  <span>
+                                    {CATEGORY_LABELS[bill.category as BillCategory]} · {partyLabel(bill.payer)} จ่าย
+                                  </span>
+                                </p>
                                 <p className="flex items-center gap-1.5">
                                   <ParticipantStack people={bill.people} />
                                   <span>หาร {bill.people.length} คน</span>

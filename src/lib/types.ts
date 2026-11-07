@@ -1,4 +1,5 @@
 import type { BillEntryType, PersonalAmounts } from "@/lib/bill-entry";
+import type { BillCategory } from "@/lib/categories";
 
 export interface BillInput {
   title: string;
@@ -10,4 +11,5 @@ export interface BillInput {
   note: string;
   entryType: BillEntryType;
   personalAmounts: PersonalAmounts;
+  category: BillCategory | null;
 }

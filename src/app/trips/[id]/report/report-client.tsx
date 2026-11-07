@@ -11,6 +11,8 @@ import { SettlementQr } from "@/components/promptpay-qr";
 import type { PromptPayTarget } from "@/lib/members";
 import { getBillEntryLabel, type BillEntryType } from "@/lib/bill-entry";
 import type { Settlement } from "@/lib/balance";
+import { CATEGORY_LABELS, type BillCategory, type CategorySpending } from "@/lib/categories";
+import { CategoryIcon, categoryStyle } from "@/components/category-icon";
 
 type BillBreakdown = {
   id: string;
@@ -18,6 +20,7 @@ type BillBreakdown = {
   amount: number;
   currency: string;
   entryType: BillEntryType;
+  category: BillCategory;
   payerName: string;
   date: string | null;
   shares: { name: string; share: number; personal: number }[];
@@ -67,6 +70,7 @@ type GroupSettlement = Settlement & {
 interface Props {
   tripId: string;
   billBreakdown: BillBreakdown[];
+  categorySpending: CategorySpending[];
   perPerson: PersonSummary[];
   groupSummaries: GroupSummary[];
   settlements: Settlement[];
@@ -215,6 +219,55 @@ function Ledger({ lines, labels }: { lines: LedgerLine[]; labels: { paid: string
   );
 }
 
+const percent = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
+
+/**
+ * Where one currency's money went: a storage-style bar in the categories' fixed order,
+ * then every category named with its amount, so colour never carries the meaning alone.
+ */
+function CategorySpendingCard({ spending, showCurrency }: { spending: CategorySpending; showCurrency: boolean }) {
+  const ranked = [...spending.categories].sort((a, b) => b.amount - a.amount);
+  return (
+    <Section
+      header={showCurrency ? `ใช้จ่ายตามหมวด · ${spending.currency}` : "ใช้จ่ายตามหมวด"}
+      inset={AVATAR_INSET}
+    >
+      <div className="space-y-3 px-4 pb-4 pt-3">
+        <p className="text-title2 font-bold tabular-nums">
+          {money(spending.total)} <span className="text-subhead font-semibold text-label-2">{spending.currency}</span>
+        </p>
+        <div aria-hidden className="flex h-3 gap-0.5 overflow-hidden rounded-full">
+          {spending.categories.map((entry) => (
+            <span
+              key={entry.category}
+              title={`${CATEGORY_LABELS[entry.category]} ${money(entry.amount)} ${spending.currency}`}
+              style={{ ...categoryStyle(entry.category), flexGrow: entry.amount }}
+              className="min-w-1 basis-0 bg-cat"
+            />
+          ))}
+        </div>
+      </div>
+      {ranked.map((entry) => (
+        <div key={entry.category} className={`${row} justify-between`}>
+          <span className="flex min-w-0 items-center gap-3">
+            <CategoryIcon category={entry.category} decorative />
+            <span className="min-w-0">
+              <span className="block">{CATEGORY_LABELS[entry.category]}</span>
+              <span className="block text-footnote text-label-2">{entry.count} บิล</span>
+            </span>
+          </span>
+          <span className="shrink-0 text-right">
+            <span className="block font-semibold tabular-nums">{money(entry.amount)}</span>
+            <span className="block text-footnote tabular-nums text-label-2">
+              {Math.round(percent(entry.amount, spending.total))}%
+            </span>
+          </span>
+        </div>
+      ))}
+    </Section>
+  );
+}
+
 const LEDGER_LABELS = { paid: "จ่ายไป", owed: "ส่วนของตัวเอง" };
 const GROUP_LEDGER_LABELS = { paid: "จ่ายไป", owed: "ส่วนของกลุ่ม" };
 
@@ -248,6 +301,7 @@ function SummaryCard({
 export function ReportClient({
   tripId,
   billBreakdown,
+  categorySpending,
   perPerson,
   groupSummaries,
   settlements,
@@ -263,7 +317,7 @@ export function ReportClient({
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "settlement", label: "สรุปโอนเงิน" },
-    { id: "breakdown", label: "แยกบิล" },
+    { id: "breakdown", label: "ค่าใช้จ่าย" },
     { id: "person", label: "รายคน" },
     ...(hasGroups ? [{ id: "group" as const, label: "รายกลุ่ม" }] : []),
   ];
@@ -329,13 +383,25 @@ export function ReportClient({
         {/* Bill Breakdown */}
         {tab === "breakdown" && (
           <div className="space-y-6">
+            {categorySpending.map((spending) => (
+              <CategorySpendingCard
+                key={spending.currency}
+                spending={spending}
+                showCurrency={categorySpending.length > 1}
+              />
+            ))}
+            {billBreakdown.length > 0 && (
+              // sits on the first bill like a section header; space-y's gap is a bottom margin, so zero it
+              <h2 className="mb-0 px-4 pb-1.5 pt-2 text-footnote text-label-2">แยกตามบิล</h2>
+            )}
             {billBreakdown.length === 0
               ? emptyState("ยังไม่มีรายการ")
               : billBreakdown.map((bill) => (
                   <Section key={bill.id} inset={AVATAR_INSET} groupClassName="[&>*:first-child+*]:before:left-0">
                     <div className="px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="min-w-0 break-words font-semibold">
+                        {bill.entryType !== "advance" && <CategoryIcon category={bill.category} size="sm" />}
+                        <p className="min-w-0 flex-1 break-words font-semibold">
                           {bill.title}
                           {bill.entryType === "advance" && (
                             <span className="ml-1.5 inline-block rounded-full bg-orange/15 px-2 py-0.5 align-[2px] text-caption font-semibold text-orange-ink">
